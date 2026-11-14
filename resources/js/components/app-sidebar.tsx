@@ -28,8 +28,33 @@ import {
     SidebarMenu,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import type { NavGroup } from '@/types';
+import { buildingsMeters, dashboard, usersAccess } from '@/routes';
+import DataManagementController from '@/actions/App/Http/Controllers/DataManagementController';
+import VerificationController from '@/actions/App/Http/Controllers/VerificationController';
+import PreprocessingController from '@/actions/App/Http/Controllers/PreprocessingController';
+import AnalyticsController from '@/actions/App/Http/Controllers/AnalyticsController';
+import ForecastController from '@/actions/App/Http/Controllers/ForecastController';
+import SolarScenarioController from '@/actions/App/Http/Controllers/SolarScenarioController';
+import DecisionSupportController from '@/actions/App/Http/Controllers/DecisionSupportController';
+import type { NavGroup, UserRole } from '@/types';
+
+// Provisional role visibility per the proposed permission matrix
+// (docs/ROLES_AND_PERMISSIONS.md §2 — pending City Hall confirmation).
+// Items without `roles` are visible to every role. Server-side routes
+// enforce the same rules; this filter is presentation only.
+const ADMIN: UserRole[] = ['admin'];
+const ADMIN_EM: UserRole[] = ['admin', 'energy_manager'];
+const ADMIN_EM_FACILITIES: UserRole[] = [
+    'admin',
+    'energy_manager',
+    'facilities_personnel',
+];
+const BUDGET_VIEWERS: UserRole[] = [
+    'admin',
+    'energy_manager',
+    'budget_officer',
+    'viewer',
+];
 
 const navGroups: NavGroup[] = [
     {
@@ -45,19 +70,29 @@ const navGroups: NavGroup[] = [
     {
         label: 'Data Operations',
         items: [
-            { title: 'Buildings & Meters', href: null, icon: Building2, disabled: true },
-            { title: 'Data Management', href: null, icon: Upload, disabled: true },
+            {
+                title: 'Buildings & Meters',
+                href: buildingsMeters(),
+                icon: Building2,
+                roles: ADMIN_EM_FACILITIES,
+            },
+            {
+                title: 'Data Management',
+                href: DataManagementController.index(),
+                icon: Upload,
+                roles: ADMIN_EM_FACILITIES,
+            },
             {
                 title: 'Verification Queue',
-                href: null,
+                href: VerificationController.index(),
                 icon: ShieldCheck,
-                disabled: true,
+                roles: ADMIN_EM,
             },
             {
                 title: 'Preprocessing',
-                href: null,
+                href: PreprocessingController.index(),
                 icon: SlidersHorizontal,
-                disabled: true,
+                roles: ADMIN_EM,
             },
         ],
     },
@@ -66,28 +101,28 @@ const navGroups: NavGroup[] = [
         items: [
             {
                 title: 'Energy Analytics',
-                href: null,
+                href: AnalyticsController.index(),
                 icon: BarChart3,
-                disabled: true,
             },
             {
                 title: 'Building Comparison',
-                href: null,
+                href: AnalyticsController.comparison(),
                 icon: Columns3,
-                disabled: true,
             },
-            { title: 'Forecasting', href: null, icon: TrendingUp, disabled: true },
+            {
+                title: 'Forecasting',
+                href: ForecastController.index(),
+                icon: TrendingUp,
+            },
             {
                 title: 'Model Evaluation',
-                href: null,
+                href: ForecastController.evaluation(),
                 icon: Gauge,
-                disabled: true,
             },
             {
                 title: 'Decision Support',
-                href: null,
+                href: DecisionSupportController.index(),
                 icon: Lightbulb,
-                disabled: true,
             },
             {
                 title: 'Action Tracker',
@@ -97,15 +132,15 @@ const navGroups: NavGroup[] = [
             },
             {
                 title: 'Solar & Scenarios',
-                href: null,
+                href: SolarScenarioController.index(),
                 icon: SunMedium,
-                disabled: true,
             },
             {
                 title: 'Budget Planning',
                 href: null,
                 icon: PhilippinePeso,
                 disabled: true,
+                roles: BUDGET_VIEWERS,
             },
         ],
     },
@@ -119,19 +154,32 @@ const navGroups: NavGroup[] = [
     {
         label: 'Administration',
         items: [
-            { title: 'Users & Access', href: null, icon: Users, disabled: true },
+            {
+                title: 'Users & Access',
+                href: usersAccess(),
+                icon: Users,
+                roles: ADMIN,
+            },
             {
                 title: 'Audit Logs',
                 href: null,
                 icon: ScrollText,
                 disabled: true,
+                roles: ADMIN,
             },
-            { title: 'Settings', href: null, icon: Settings, disabled: true },
+            {
+                title: 'Settings',
+                href: null,
+                icon: Settings,
+                disabled: true,
+                roles: ADMIN_EM,
+            },
             {
                 title: 'System Health',
                 href: null,
                 icon: HeartPulse,
                 disabled: true,
+                roles: ADMIN,
             },
         ],
     },
@@ -139,6 +187,19 @@ const navGroups: NavGroup[] = [
 
 export function AppSidebar() {
     const { auth } = usePage().props;
+
+    const role = auth.user?.role;
+    const filteredGroups: NavGroup[] = navGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter(
+                (item) =>
+                    !item.roles ||
+                    role === undefined ||
+                    item.roles.includes(role),
+            ),
+        }))
+        .filter((group) => group.items.length > 0);
 
     return (
         <Sidebar collapsible="icon" variant="sidebar">
@@ -169,13 +230,13 @@ export function AppSidebar() {
                         Role workspace
                     </span>
                     <span className="mt-0.5 text-[13px] font-semibold text-white">
-                        {auth.user?.name ?? 'Guest'}
+                        {auth.user?.roleLabel ?? 'Guest'}
                     </span>
                 </div>
             </SidebarHeader>
 
             <SidebarContent className="pt-3">
-                <NavGroups groups={navGroups} />
+                <NavGroups groups={filteredGroups} />
             </SidebarContent>
         </Sidebar>
     );

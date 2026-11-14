@@ -1,4 +1,7 @@
 /.phpunit.cache
+/.venv
+__pycache__/
+*.pyc
 /bootstrap/ssr
 /node_modules
 /public/build

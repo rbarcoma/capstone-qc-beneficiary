@@ -1,4 +1,5 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
+import type { UserRole } from '@/types/auth';
 import type { LucideIcon } from 'lucide-react';
 
 export type BreadcrumbItem = {
@@ -11,6 +12,8 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Roles that may see this item; omitted = all roles. */
+    roles?: UserRole[];
 };
 
 export type DisabledNavItem = Omit<NavItem, 'href'> & {

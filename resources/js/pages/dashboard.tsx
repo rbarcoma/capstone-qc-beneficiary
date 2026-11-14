@@ -1,10 +1,6 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import DataManagementController from '@/actions/App/Http/Controllers/DataManagementController';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +33,11 @@ const routineSteps = [
 
 export default function Dashboard() {
     const page = usePage();
+    const canUpload = [
+        'admin',
+        'energy_manager',
+        'facilities_personnel',
+    ].includes(page.props.auth.user.role);
     const data = page.props as unknown as DashboardData;
     const {
         buildings,
@@ -76,21 +77,48 @@ export default function Dashboard() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2.5">
-                        <Button
-                            className="h-10 rounded-[9px] bg-primary px-4 text-[12px] font-semibold"
-                            disabled
-                            title="Uploads arrive with the Data Management module"
-                        >
-                            Upload monthly bill
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-10 rounded-[9px] border-border bg-card px-4 text-[12px] font-semibold text-primary"
-                            disabled
-                            title="Demo data loading arrives with the Data Management module"
-                        >
-                            Load synthetic demo
-                        </Button>
+                        {canUpload ? (
+                            <Button
+                                asChild
+                                className="h-10 rounded-[9px] bg-primary px-4 text-[12px] font-semibold"
+                            >
+                                <Link href={DataManagementController.index()}>
+                                    Upload monthly bill
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button
+                                className="h-10 rounded-[9px] bg-primary px-4 text-[12px] font-semibold"
+                                disabled
+                                title="Your role cannot upload monthly records"
+                            >
+                                Upload monthly bill
+                            </Button>
+                        )}
+                        {canUpload ? (
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="h-10 rounded-[9px] border-border bg-card px-4 text-[12px] font-semibold text-primary"
+                            >
+                                <Link
+                                    href={DataManagementController.index({
+                                        query: { demo: '1' },
+                                    })}
+                                >
+                                    Load synthetic demo
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="h-10 rounded-[9px] border-border bg-card px-4 text-[12px] font-semibold text-primary"
+                                disabled
+                                title="Demo preview is available in the Data Management workspace"
+                            >
+                                Load synthetic demo
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -168,7 +196,9 @@ export default function Dashboard() {
                             {trend.length === 0 ? (
                                 <div className="flex h-[103px] items-center justify-center rounded-[15px] border border-border bg-card">
                                     <p className="text-[14px] text-[#1c2b40]">
-                                        No verified values to chart
+                                        {kpis.verifiedMonths > 0
+                                            ? 'Process current verified data to populate this trend'
+                                            : 'No verified values to chart'}
                                     </p>
                                 </div>
                             ) : (
@@ -278,13 +308,23 @@ export default function Dashboard() {
                                                 >
                                                     {row.forecastReady
                                                         ? 'Ready'
-                                                        : 'Insufficient'}
+                                                        : row.verifiedCoverage >
+                                                            0
+                                                          ? 'Not assessed'
+                                                          : 'Insufficient'}
                                                 </Badge>
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
+                        )}
+                        {readiness.some((row) => row.verifiedCoverage > 0) && (
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Coverage requires complete verified building
+                                periods. Forecast eligibility is assessed
+                                separately by forecasting.
+                            </p>
                         )}
                     </CardContent>
                 </Card>

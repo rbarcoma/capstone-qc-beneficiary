@@ -1,6 +1,6 @@
 # MODULES_AND_FEATURES.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-13
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-14
 
 **Status vocabulary (strict):**
 - **Existing and verified** — present and tested in this repo.
@@ -10,14 +10,14 @@
 - **Blocked / requires approval** — needs explicit user instruction or City Hall decision.
 - **Design-only** — Figma design exists; backend does not.
 
-**Verified repo baseline (2026-11-13):** auth pages (Fortify), settings pages, welcome page, placeholder dashboard, shadcn UI kit, app shell layouts. **No domain module exists in code.** Every module below is therefore Proposed/Design-only unless stated otherwise.
+**Historical starter baseline (2026-11-13):** auth/settings, welcome, placeholder dashboard, shadcn shell. **Current verified scope (2026-11-14):** P1–P4 foundations + P5 source-tracked weather, versioned preprocessing/analytics/comparison, and P6 read-only worker/JSON bridge. Operational forecasting/issuance/evaluation UI and DSS remain unfinished as labeled below.
 
 ---
 
 ## Core & operational modules
 
 ### M1. Dashboard
-- **Status:** Design-only (frame verified) + placeholder page in code.
+- **Status:** **Existing and verified** — P1 dashboard + P3–P5 authorized counts and complete-building verified coverage/latest period; trends use current processed datasets only. Stale/partial data suppressed; Facilities assigned-building filtering enforced. Forecast eligibility remains separate/unassessed by the operational UI until P6 issuance is implemented.
 - **Users:** All roles (role-specific variants pending inspection).
 - **Purpose:** Landing view per workspace; building + period selection; status at a glance.
 - **Figma:** Admin frame `2024:3` verified (see `docs/FIGMA_DESIGN_GUIDE.md` §2.1).
@@ -28,67 +28,67 @@
 - **Depends on:** P1 (layout/branding), P3–P5 (data).
 
 ### M2. Buildings & Meters (registry)
-- **Status:** Proposed (proposal §9.1).
-- **Users:** Admin (manage), others (view per permissions).
+- **Status:** **Existing and verified** in P3 (2026-11-14 completion audit) — registry + building/meter create/update/soft-remove; Admin CRUD controls extend shadcn conventions because Figma has no edit/remove/form designs.
+- **Users:** Admin (manage), others (view per permissions: Energy Manager full view, Facilities building-filtered, Budget/Viewer no access).
 - **Requirements:** complex → buildings → meters registry; attributes per proposal Table 9 (building: name, code, floor area m², operating hours, notes; meter: Meralco account reference [restricted], tariff class, status).
-- **Backend:** CRUD + policies; account-number visibility restricted (Admin, Energy Manager).
-- **Acceptance criteria:** reversible migrations; pilot buildings (HIGHRISE, TREASURY) seedable; building codes referenced by CSV template.
+- **Backend:** `buildings-meters` GET (`role:admin,energy_manager,facilities_personnel`); building/meter POST, PATCH, DELETE (`role:admin` + `BuildingPolicy@manage`). All meter refs masked (short refs completely masked); optional replacement on edit, blank retains current value. Meter's building stays fixed on edit. Removal soft-deletes, preserving rows/assignments and reserved identifiers; non-removed meters block building removal. Seeder respects removed pilots. Facilities data filtered server-side; management controls use server-derived `canManage`.
+- **Acceptance criteria:** reversible migrations; pilot buildings seedable; CSV codes stable. **Verified:** P3 registry CRUD/filter and Facilities read-only checks; P4 real distinct verified-period counts/latest period and rejection of removing meters with monthly history (including concurrent-intake row lock). No bill history seeded/imported into development.
 - **Depends on:** P2 (roles), feeds everything.
 
 ### M3. Data Management (upload/encode)
-- **Status:** Existing in capstone, not ported (CSV upload with validation + preprocessing claimed).
+- **Status:** **Existing and verified (P4 complete, 2026-11-14)** — transactional CSV/manual Draft intake, validation, upload audit events, independent verification/correction actions and a separately labeled browser-only synthetic preview. Preprocessing is P5.
 - **Users:** Facilities Personnel (own buildings), Energy Manager, Admin.
 - **Requirements:** proposal Appendix A CSV template: `building_code, month (YYYY-MM-01), kwh, billed_demand_kw, cost_php, power_factor, notes`; one row per building+month; validation errors surfaced per row; duplicate/missing month detection.
-- **Figma:** pending inspection.
-- **Acceptance criteria:** invalid/duplicate rows rejected with row-level messages; uploaded months stored as **draft**; synthetic demo data loadable but isolated and flagged.
+- **Figma:** Admin Data Management `2024:316` inspected and implemented; production adaptations recorded in design guide/handoff.
+- **Acceptance criteria (verified):** invalid/duplicate batches rejected atomically with row messages; completed-month gate uses Asia/Manila; gap warnings never fill values; ambiguous multi-meter CSV mapping rejected, manual entry selects meter explicitly; records stored **draft**. Demo preview has separate shape/state, no API writes/persistence/record IDs, and no effect on official totals or analytics.
 - **Depends on:** M2; P4.
 
 ### M4. Verification Queue
-- **Status:** Proposed (proposal §9.3: draft until a second person verifies against the bill).
+- **Status:** **Existing and verified (P4, 2026-11-14)** — frame `2024:481` inspected/implemented; Admin/Energy Manager verify a different person's latest values after explicit bill confirmation. Corrections require a reason, retain previous state in revisions/audit, clear verification and return Draft. Version checks reject stale actions; billing-month corrections reject duplicate periods; meter assignment fixed. Operational revision history paginated for Admin/Energy Manager. Overdue timing remains Not assessed pending policy.
 - **Users:** Energy Manager, Admin.
 - **Backend:** draft→verified state change, audited; corrections post-verification create recorded actions and keep previous value in audit history.
 - **Acceptance criteria:** only verified months feed analytics/forecasts; verification is auditable; unauthorized users cannot verify (server-enforced).
 - **Depends on:** M3, P2.
 
 ### M5. Preprocessing
-- **Status:** Existing in capstone, not ported (claimed).
+- **Status:** **Existing and verified P5** — versioned complete-building preprocessing from verified records, retained source/weather lineage and exact calendar past-only predictors; current fingerprints invalidate superseded analytics. NASA POWER approved/implemented; raw daily aggregation contract documented.
 - **Requirements:** clean verified months, join weather (source recorded: NASA POWER or PAGASA — proposal §9.3), compute derived features (e.g., load factor when billed demand exists); processed datasets versioned for reproducibility (capstone has dataset/forecast versioning migrations).
 - **Acceptance criteria:** derived from verified data only; version lineage queryable.
-- **Depends on:** M4, weather data (source TBD).
+- **Depends on:** M4; NASA POWER source/units/missing-day contract verified (weather gaps remain null).
 
 ### M6. Energy Analytics
-- **Status:** Existing in capstone, not ported (trends, MoM/YoY, actual-vs-predicted, change indicators); cross-building comparison, cost analysis (PHP), kWh/m², load factor = **Proposed** (proposal §10.1).
+- **Status:** **Existing and verified P5** — current verified-dataset trends, exact MoM/YoY, actual cost/intensity and single-meter calendar load factor. Facilities cost fields suppressed server-side. Actual-vs-predicted/backtests remain P6, not fabricated.
 - **Users:** all roles (building-filtered for Facilities).
 - **Acceptance criteria:** only verified data; comparisons show context (similar-use caveat); cost figures only where bills include them.
 - **Depends on:** M5; pilot analytics feasible with 17-month Highrise history **if** data is authorized and ported (blocked).
 
 ### M7. Building Comparison
-- **Status:** Proposed (proposal §10.1, Table 11).
+- **Status:** **Existing and verified P5** — common complete period from current authorized datasets; missing/stale portfolio sums and unknown cost/intensity ranks suppressed; functions/schedules/context caveat retained.
 - **Requirements:** rank by kWh, cost, kWh/m²; show context beside rankings.
 - **Depends on:** M6, floor-area data (open item, proposal Table 20 #6).
 
 ### M8. Forecasting
-- **Status:** Existing in capstone, not ported (next-month forecast; baselines, Linear, Ridge); scheduled run + prediction range + error tracking = Proposed.
+- **Status:** **Existing and verified P6**: Linear primary + three-month baseline, computed walk-forward evidence, immutable versioned issuance/storage, locked freshness/runtime/actor rechecks, idempotency, realized-error reconciliation/retraction and scoped UI. Optional model-family choices remain tracked; no Ridge/tree promotion silently implemented.
 - **Users:** Energy Manager (run), Budget Officer/Viewer (view), Facilities (own buildings view).
 - **Hard constraints:** **next eligible month only**; runs after the month is verified; Linear Regression primary (see `docs/ML_AND_DSS_RULES.md` §4); confidence label reflects history sufficiency.
 - **Acceptance criteria:** forecast stored with model version + metrics; ineligible buildings show data-sufficiency notice, not a number.
 - **Depends on:** M5, Python integration (P6).
 
 ### M9. Model Evaluation
-- **Status:** Existing in capstone, not ported (MAE, RMSE, R², actual-vs-predicted); challenger-vs-current promotion = Proposed (proposal §10.2).
+- **Status:** **Existing and verified P6** (computed same-period walk-forward MAE/RMSE/R² and actual-vs-predicted evidence, current/historical/superseded states); challenger-vs-current promotion = Proposed (proposal §10.2).
 - **Acceptance criteria:** metrics computed on walk-forward test months; **no fabricated metrics**; error history kept per month.
 - **Depends on:** M8.
 
 ### M10. Decision Support (DSS)
-- **Status:** Existing in capstone, not ported (rule-based R1–R7); configurable thresholds/targets/action tracking/what-if = Proposed.
+- **Status:** **Existing and verified P7 independent workflow**: scoped evidence/history UI, Energy Manager-only audited accept/reject/defer, final-state/version guards, explicit owner/due-date action creation. **Blocked / requires clarification:** C5 R1–R7 mapping/numeric trigger/evidence/priority contract; no rule generator. Default-null policy prevents production decisions, including on stored evaluated rows. Configurable thresholds/targets remain Proposed.
 - **Users:** Energy Manager (act), Budget Officer/Viewer (view).
 - **Requirements:** see `docs/ML_AND_DSS_RULES.md` §5; every recommendation carries its evidence numbers; Energy Manager accepts/rejects/defers; accepted items become actions with owner + due date (proposal §10.3).
 - **Depends on:** M6, M8; P7.
 
 ### M11. Solar & Scenarios
-- **Status:** Existing in capstone, not ported (solar pre-assessment); what-if = Proposed (§10.3).
+- **Status:** **Existing and verified P7**: source-checked explicit-percentage arithmetic and paired explicit kWp/performance-ratio solar screening, historical proxy/target-day formulas, assumptions audit, independent scenarios, unchanged issued forecast, null cost without tariff.
 - **Hard constraint:** screening-level only (irradiance, assumed capacity, performance ratio) — **never** an engineering feasibility conclusion; what-if is arithmetic on the forecast, not measure prediction.
-- **Depends on:** M10.
+- **Depends on:** current M8 forecast; M10 rule generation is independently blocked.
 
 ### M12. Budget Planning
 - **Status:** Proposed (budget view: forecast kWh × tariff → estimated cost + range) — proposal §10.5.
@@ -97,7 +97,7 @@
 - **Depends on:** M8.
 
 ### M13. Action Tracker
-- **Status:** Proposed (owner, due date, outcome; feeds monthly review).
+- **Status:** P7 action creation with explicit authorized owner/due date and Decision Support summary is **Existing and verified**. Standalone tracker/status/outcome editing remains **Proposed (P8)**; no automatic procurement decision.
 - **Depends on:** M10, alerts.
 
 ### M14. Reports
@@ -111,11 +111,11 @@
 - **Depends on:** queues (P8+), M3/M8/M10.
 
 ### M16. Users & Access
-- **Status:** Admin/Viewer existing in capstone; five roles + building permissions = Proposed. Full plan in `docs/ROLES_AND_PERMISSIONS.md`.
-- **Depends on:** P2.
+- **Status:** **Reference page implemented in P2 (2026-11-14)** — Admin page matching Figma frame `2024:2179` (role status cards Existing/Proposed + role-based permission matrix). The five roles + building permissions are now **implemented server-side** (role column, `App\Enums\UserRole`, `role:` middleware, `user_building` pivot); the wider permission matrix in `docs/ROLES_AND_PERMISSIONS.md` §2 remains **Proposed** pending City Hall confirmation. User CRUD / role-assignment UI is **not in the frame** and not implemented.
+- **Depends on:** P2 (roles landed).
 
 ### M17. Audit Logs
-- **Status:** Existing in capstone, not ported (audit trail claimed); extend to corrections + decisions (proposal §12.2).
+- **Status:** **Existing and verified P4 event-storage foundation** — uploads/verifications/corrections with actor + before/after, and scoped P4 permission denials. Operational revision history is available to authorized reviewers. Global Admin-only audit viewer and future-module events remain Proposed (P8+).
 - **Acceptance criteria:** covers uploads, verifications, corrections, forecast runs, decisions, downloads, permission denials of interest; viewable by Admin only.
 - **Depends on:** P4 onward.
 

@@ -1,4 +1,9 @@
 export type * from './auth';
 export type * from './dashboard';
+export type * from './data-management';
+export type * from './energy';
+export type * from './forecast';
 export type * from './navigation';
+export type * from './registry';
 export type * from './ui';
+export type * from './users-access';

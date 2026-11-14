@@ -1,7 +1,7 @@
 # ROLES_AND_PERMISSIONS.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-13
-**Status labels:** existing claims are proposal/capstone claims, **not** verified in this repo. This repo has exactly one implicit role: any authenticated user.
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-14
+**Current implementation (2026-11-14):** five roles + building assignments (P2), Admin-only registry management (P3), and P4 authorized CSV/manual intake, independent verification/correction/history are **Existing and verified**. Proposal status labels below describe their source, not implementation evidence for future modules.
 
 ## 1. Roles (proposal §6.1, Table 3)
 
@@ -13,7 +13,7 @@
 | 4 | **Budget Officer** | Proposed | Budget office | Use forecast + cost estimates for budget planning, download reports |
 | 5 | **Viewer / Executive** | Existing (capstone) | City leadership, department heads | View dashboards, forecasts, recommendations, reports |
 
-**Implementation status in this repo:** none of the five roles exists (`app/Models/User.php` has no role column; `database/migrations/` has no role migration). Adding them is Phase P2 in `docs/IMPLEMENTATION_PLAN.md`.
+**Implementation status in this repo:** **Implemented in P2 (2026-11-14).** `users.role` column (default `viewer`) + `App\Enums\UserRole`; `role:` middleware (`App\Http\Middleware\EnsureUserHasRole`, registered in `bootstrap/app.php`) for route groups; `buildings` + `user_building` pivot with `User::hasBuildingAccess()` / `allowedBuildingIds()` (building-level restriction; only Facilities Personnel is building-restricted per §2). Role + `roleLabel` + `allowedBuildingIds` shared to the frontend via `HandleInertiaRequests` — presentation only, enforcement stays server-side. Entity-level policies land with their entities (P3+). Permission-denied audit logging lands with `audit_logs` (P4+).
 
 ## 2. Permission matrix (proposed, from proposal §6.2 Table 4 — to be confirmed with City Hall offices)
 
@@ -37,7 +37,11 @@ Notes:
 
 ## 3. Enforcement plan (when P2 is implemented)
 
-1. **Role storage:** add `role` to `users` (string enum backed by `App\Enums\UserRole`) — reversible migration. Building assignments go in a pivot (`building_user`) for building-level restriction.
+**P5–P7 checkpoint:** preprocessing/build/weather sync + operational dataset lineage and forecast issuance/reconciliation = Admin/Energy Manager, server role/policy gates; analytics/comparison/forecast/scenarios = authenticated roles with Facilities building scope and cost suppression. Decision Support = all authenticated view roles, Facilities assigned-building non-cost recommendations only (R1/cost-marked rows excluded). Accept/reject/defer = **Energy Manager only**, including persisted-role recheck; Admin cannot decide. Matching evaluated policy/current source/version required; default production policy unavailable. Acceptance requires owner with recommendation/building visibility and an explicit due date. Decision history/action creation/audit are atomic; scoped route-role denials audited. Standalone action lifecycle editing remains P8.
+
+**P4 enforcement verified:** intake/template/data page = Admin/Energy Manager/Facilities (assigned buildings only). Queue/verify/correct/history = Admin/Energy Manager. `MonthlyRecordPolicy` additionally denies verification by the current author (`last_edited_by`, fallback uploader), including after corrections. Bill confirmation + version required; corrections require reason and re-verification. Operational correction history is available to these reviewers; global audit logs UI remains Admin-only/P8. Scoped P4 route/policy denials are audited without raw request/account contents.
+
+1. **Role storage:** `role` on `users` (string enum backed by `App\Enums\UserRole`) — reversible migration. Building assignments use the implemented `user_building` pivot.
 2. **Authorization layer:**
    - Middleware for route groups (e.g., `role:admin`), plus **Laravel Policies** for entity-level checks (verify record, accept recommendation, manage target).
    - Building-level: policy checks `user->buildings()->contains($record->building_id)`.

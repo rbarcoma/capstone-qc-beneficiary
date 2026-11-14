@@ -68,6 +68,9 @@
         "types:check": [
             "phpstan analyse --memory-limit=1G"
         ],
+        "test:forecast": [
+            "./vendor/bin/sail exec -T -e OMP_NUM_THREADS=1 -e OPENBLAS_NUM_THREADS=1 laravel.test .venv/bin/python -m unittest discover -s python -p 'test_*.py' -v"
+        ],
         "test": [
             "@php artisan config:clear --ansi",
             "@lint:check",
