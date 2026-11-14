@@ -18,7 +18,7 @@ Incremental, phase-gated plan. **No phase is complete because its Figma design e
 - **Existing:** shadcn sidebar/header shell (`resources/js/components/`), placeholder dashboard page.
 - **Tasks:** 1) Map tokens: navy `#173A7A`, background `#F5F7FB`, Inter, 262px sidebar, 70px topbar → Tailwind 4 theme in `resources/css/app.css`. 2) Brand sidebar/header ("QC Energy DSS"; fix APP_NAME typo `DSS Enegy QC` — needs user go-ahead, touches `.env`). 3) Adapt dashboard page structure to the frame (KPI card grid, readiness table, buttons) with **real empty states**. 4) Confirm grouping pattern for nav (role-driven later).
 - **Depends on:** P0. **Testing:** `npm run types:check`, build, visual check vs frame.
-- **Status:** Not started
+- **Status:** Complete (2026-11-13; see `docs/IMPLEMENTATION_PROGRESS.md` P1 entry)
 
 ## P2 — Authentication, role-based access, and building-level permissions
 

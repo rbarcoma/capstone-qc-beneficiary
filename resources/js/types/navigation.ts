@@ -12,3 +12,13 @@ export type NavItem = {
     icon?: LucideIcon | null;
     isActive?: boolean;
 };
+
+export type DisabledNavItem = Omit<NavItem, 'href'> & {
+    href: null;
+    disabled: true;
+};
+
+export type NavGroup = {
+    label: string;
+    items: Array<NavItem | DisabledNavItem>;
+};

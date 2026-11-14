@@ -4,10 +4,10 @@
 
 ## 1. Current status
 
-- **Project stage:** documentation/knowledge-base complete; **zero application features implemented.**
-- **Codebase:** fresh Laravel 13 + React 19 starter kit (audit: `docs/PROJECT_CONTEXT.md` §4). Auth pages, settings, placeholder dashboard only.
+- **Project stage:** P0 + P1 complete (2026-11-13). P2 next.
+- **Codebase:** Laravel 13 + React 19 starter kit with branded shell + admin dashboard implemented to Figma frame `2024:3` (see `docs/IMPLEMENTATION_PROGRESS.md` P1 entry). Auth pages, settings, shadcn UI kit; **no domain features yet** (buildings/meters/records land in P2/P3+).
 - **Knowledge base:** all 11 documentation files exist and are consistent (validated 2026-11-13).
-- **Figma inspection:** Admin Dashboard frame `2024:3` verified (recorded from prior Codex session). All other role frames **pending inspection**.
+- **Figma inspection:** Admin Dashboard frame `2024:3` verified twice + full-detail Figwright read used for P1 (tokens + layout). All other role frames **pending inspection**.
 
 ## 2. Completed documentation
 
@@ -15,24 +15,21 @@
 
 ## 3. Completed application modules
 
-None. Starter-kit scaffolding only (Fortify auth, settings, layouts, shadcn UI kit).
+- **P1 Global UI + Dashboard (complete):** design tokens + Inter font in `resources/css/app.css`/`vite.config.ts`; branded 262px sidebar with 5 grouped nav sections (18 items, non-Dashboard disabled until phases ship); 70px topbar with user menu; dashboard page (KPI cards, trend, routine, readiness table, notice) fed by `DashboardController` with **real empty states** (no buildings/records exist yet — nothing hardcoded). Deviations from the frame are documented in the P1 progress entry.
+- Local dev user `admin@example.com` / `password` exists (id 2, tinker-created for visual verification). Formal admin seeder still deferred to P2.
 
 ## 4. Exact next recommended task
 
-**P0 — Environment verification** (`docs/IMPLEMENTATION_PLAN.md`):
-1. `./vendor/bin/sail up -d` → confirm MySQL (port 3309, `capstone_qc_beneficiary`).
-2. Run `composer test`, `npm run types:check`, `npm run build`; record real results in `docs/IMPLEMENTATION_PROGRESS.md`.
-3. Then start **P1** (layout/branding to match Dashboard frame `2024:3`).
+**P2 — Authentication, role-based access, and building-level permissions** (`docs/IMPLEMENTATION_PLAN.md` §P2): `role` column migration + `App\Enums\UserRole` (reversible `down()`); `buildings` + `user_building` migrations per `docs/DATABASE_DESIGN.md` §2.1; policies/middleware per `docs/ROLES_AND_PERMISSIONS.md` §3 (server-enforced, never frontend-only); role/allowed-buildings shared via `HandleInertiaRequests`; admin user seeder; wire sidebar role filtering (P1 `NavGroups` already role-ready) and swap the sidebar role-workspace box from user name to actual role. Users & Access admin UI requires a Figma frame inspection first (pending). Feature tests for each permission pair; `composer test`.
 
-Do not start P2+ before P0/P1 are verified.
+**Tooling notes for every session:** artisan/PHPUnit must run via `./vendor/bin/sail`; regenerate Wayfinder by deleting `resources/js/{actions,routes}` + `npm run build` (artisan `wayfinder:generate` produces old format without `.form()`); run `composer test` = Pint + PHPStan + Sail PHPUnit. Playwright+Chromium is cached at `~/Library/Caches/ms-playwright` (temp project `/var/folders/.../T/opencode/pw/shot.js` pattern: login via `/login` form, screenshot dashboard) for visual checks.
 
 ## 5. Pending tasks (ordered)
 
-1. P0 env verification (above).
-2. P1 Figma layout system + branding.
-3. P2 roles + building permissions (roles migration, policies, Users & Access UI).
-4. Inspect pending Figma frames via Figwright before building each UI (restart the OpenCode session first so MCP tools load; run Figwright `ping`).
-5. P3–P9 per plan.
+1. P2 roles + building permissions (roles migration, enums, policies/middleware, seeder, Users & Access UI — inspect Figma frame first).
+2. Wire P1 hooks: sidebar role filtering + role-workspace box showing actual role; dashboard controller swaps empty-state placeholders for real queries (P3); enable Upload/demo buttons (P4).
+3. Inspect pending Figma frames via Figwright before building each UI (run Figwright `ping`).
+4. P3–P9 per plan.
 
 ## 6. Known technical blockers
 
@@ -59,13 +56,13 @@ Do not start P2+ before P0/P1 are verified.
 
 | Frame | Node | Status |
 | --- | --- | --- |
-| Admin / Dashboard | `2024:3` | Verified (prior Codex session; specs in `docs/FIGMA_DESIGN_GUIDE.md` §2.1) |
+| Admin / Dashboard | `2024:3` | Verified + **implemented** (P1; full-detail Figwright read 2026-11-13) |
 | Energy Manager / Facilities / Budget / Viewer frames | unknown | Pending inspection |
-| Figwright MCP | — | Server verified 2026-11-13; project `opencode.json` added; **new session required** for tools |
+| Figwright MCP | — | Server + plugin verified working (v0.7.0, 2026-11-13); project `opencode.json` configured |
 
 ## 9. Latest verified test results
 
-None yet for application code (documentation session). P0 will establish the baseline.
+2026-11-13 (P1): Pint passed · PHPStan 0 errors · PHPUnit 39 tests / 36 passed / 3 skipped · `npm run types:check` clean · `npm run build` ✓ · Playwright visual check vs frame `2024:3` — match.
 
 ## 10. How to continue (any future session)
 

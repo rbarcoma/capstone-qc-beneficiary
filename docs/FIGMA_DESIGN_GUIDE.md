@@ -40,7 +40,7 @@
 - Pilot buildings: 2 · Verified months: 0 · Next forecast: Not issued · Pending verification: 0
 - Highrise & Treasury readiness: Insufficient · Trend: "No verified values to chart"
 
-**Implementation status:** Design-only / pending implementation. Placeholder page exists at `resources/js/pages/dashboard.tsx`.
+**Implementation status:** **Implemented in P1 (2026-11-13).** Deviations from the mockup are documented in `docs/IMPLEMENTATION_PROGRESS.md` (P1 entry): demo hotspots/badges/role-select excluded, disabled future-module nav items, disabled upload/demo buttons, adapted notice copy, real empty states instead of demo values (no pilot buildings exist until P3).
 
 ## 3. Pending-inspection frames
 
