@@ -515,7 +515,9 @@ function SidebarMenuButton({
     />
   )
 
-  if (!tooltip) {
+  // Hidden tooltip layers still consume Escape; only mount them when the
+  // collapsed desktop sidebar actually needs an icon description.
+  if (!tooltip || state !== "collapsed" || isMobile) {
     return button
   }
 

@@ -40,7 +40,7 @@ export function NavGroups({ groups }: { groups: NavGroup[] }) {
                                 ) : (
                                     <span
                                         className={cn(
-                                            'flex h-[42px] items-center gap-3 rounded-[9px] px-3 text-[12.5px] text-sidebar-foreground/60',
+                                            'flex h-[42px] items-center gap-3 rounded-[9px] px-3 text-[12.5px] text-sidebar-foreground/75',
                                         )}
                                     >
                                         {item.icon && (

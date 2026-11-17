@@ -47,8 +47,11 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  const opener = React.useRef<HTMLElement | null>(null)
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -59,6 +62,20 @@ function DialogContent({
           className
         )}
         {...props}
+        onOpenAutoFocus={(event) => {
+          opener.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null
+          onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+          // Programmatic dialogs have no Radix Trigger to restore focus to.
+          if (!event.defaultPrevented && opener.current?.isConnected) {
+            event.preventDefault()
+            opener.current.focus()
+          }
+        }}
       >
         {children}
         <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
@@ -113,7 +130,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-[#52647e] text-sm dark:text-muted-foreground", className)}
       {...props}
     />
   )

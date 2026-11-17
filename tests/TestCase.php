@@ -7,6 +7,15 @@ use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Feature tests exercise Laravel/Inertia props, independently of any
+        // developer Vite/SSR process currently writing public/hot.
+        $this->withoutVite();
+        config(['inertia.ssr.enabled' => false]);
+    }
+
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
     {
         if (! Features::enabled($feature)) {

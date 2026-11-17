@@ -73,11 +73,12 @@
     --secondary: #eff4fb;
     --secondary-foreground: #173a7a;
     --muted: #eff4fb;
-    --muted-foreground: #66758b;
+    /* P9: readable on page, card, secondary and intake backgrounds. */
+    --muted-foreground: #52647e;
     --accent: #eff4fb;
     --accent-foreground: #1c2b40;
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
+    --destructive: #b91c1c;
+    --destructive-foreground: #b91c1c;
     --border: #dfe6f0;
     --input: #dbe3ed;
     --ring: #2e61a1;

@@ -107,6 +107,42 @@ Full-detail tree + component/token/icon maps (no bindings/matches); complete mot
 
 **Other completed P6/P7 inspection checkpoints:** Forecasting `2024:1073`, Model Evaluation `2024:1181`, issued forecast `2024:3230`, Solar & Scenarios `2024:1584` inspected and implemented per their verified progress entries; preserve technical 16-observation guard and empirical-band semantics instead of prototype eligibility/model claims.
 
+### 2.8 Admin / Audit Logs — `2024:2356` (P8, 2026-11-14)
+
+Full-detail tree + component/token/icon maps (no bindings/matches), complete motion **139 nodes, 0 animated**, reference screenshot reviewed. Frame is flattened rectangles/text and a scrolled prototype sidebar; existing responsive shell reused. Inter29px heading/17px title/11px headers/12px cells; navy `#173A7A`, secondary `#EFF4FB`, border `#DFE6F0`, radii9/12/13. Four metrics, three-column activity table and retention notice.
+
+**Existing and verified:** Admin-only stored-event list and lazy before/after detail dialog, event/actor/Manila-date filters, pagination, loading/error/retry/empty states. Filters/details are implementation extensions using existing shadcn conventions (frame contains no forms). Session count → real filtered persisted entry count; Corrections → real filtered count; Downloads → explicitly unimplemented pending Reports; simulated role → actual actor identity (historical role unavailable). Production retention notice retained with accurate attribution/coverage explanation. Prototype badges, role selector, demo/reset/hotspots/footer disclaimers omitted. Desktop1440/mobile390 browser checked; table scrolls internally and empty text wraps outside the horizontal scroll area. No synthetic official events or C5 thresholds added.
+
+### 2.9 Admin / Action Tracker — `2024:1465` (P8, 2026-11-14)
+
+Full-detail tree + component/token/icon maps (no bindings/matches), complete motion **119 nodes, 0 animated**, reference screenshot reviewed. Flattened rectangles/text → existing responsive shell/shadcn containers. Inter29px heading/17px card title/11px headers/12px cells, navy `#173A7A`, secondary `#EFF4FB`, border `#DFE6F0`, radii9/12/13. Header with Review DSS recommendations; four metrics Tracked/Open/Completed/Overdue; five-column source/owner/due/status/next step table; follow-through notice.
+
+**Existing and verified:** accepted action listing, building/status filters, counts, EM-only follow-up/completion dialog and lazy paginated history; terminal completed record, stale-version errors preserve entered text/dialog, scope/read-only states, loading/error/retry and real empty UI. Filters/dialog/history are functional extensions (no forms or update permissions in this empty frame). Working lifecycle/permissions grounded separately in proposal Table13/Table14 step8 and documented in `ROLES_AND_PERMISSIONS.md`; role mockup is not backend authority. Overdue remains **To be configured**, no automatic savings attribution. Prototype badges/simulated role/hotspots/footer disclaimer excluded; empty message now describes accepted-action creation rather than uploads alone. Desktop1440/mobile390 browser verified; table internally scrolls, historical source is labeled rather than presented as current advice.
+
+### 2.10 Admin / Reports — `2024:1870` (P8, 2026-11-15)
+
+Full-detail tree + component/token/icon maps (no matches/bindings); complete motion150/no animation; reference screenshot reviewed. Flattened content reuses responsive energy workspace/shadcn/theme. Inter29/17/11–12px, navy/secondary/border and radii9/12/13 match existing tokens. Building/latest-period controls, four metrics, four-column/four-type catalogue, internal/export notice.
+
+**Existing and verified:** executive PDF + billing/evidence Excel downloads, pending/error/retry-refresh/success and missing/stale/scoped states. Prototype browser print/CSV controls adapted to proposal §10.5 PDF/Excel; redundant header exports consolidated in table. Budget export explicitly unavailable, C5 notice preserved, generated content current-source/role scoped. Prototype badges/simulation/footer omitted. Audit-aware availability copy replaces unverified prototype claims. Real two-page PDF and desktop1440/mobile390 UI reviewed; table scrolls internally, status/error text outside wide table. Facilities use assigned buildings/non-cost projection per server policy, not prototype audience labels.
+
+### 2.11 Admin / Notifications — `2024:2020` (P8, 2026-11-15)
+
+Full-detail tree + component/icon maps (no matches), prior file-wide token map reused; complete motion159/no animation; reference screenshot reviewed. Flattened rectangles/text reuse responsive energy workspace/shadcn/theme, Inter29/17/11–12px/navy-secondary-border/radii9/12/13. Four metrics, three-column current inbox, five-rule table and delivery notice.
+
+**Existing and verified:** real draft/current-forecast notice counts per proposal recipients, personal read state/read filters/pagination, source links, per-row/page-only acknowledgment and stale/error/refresh/success/empty states. Prototype all-read becomes Mark page read so unseen notices stay unread; filters/populated source controls extend the empty frame. Mock recipient cards become counts with accurate recipient captions. Rule table distinguishes current in-app vs unconfigured SMTP/overdue/tolerance and disabled C5 alerts. Notice explicitly calls this a live inbox, not a historical delivery ledger; marking read never verifies a bill. Other roles have empty inbox per Table12. Prototype badges/simulation/sidebar scroll/footer omitted. Desktop1440/mobile390 browser checked, tables scroll internally, empty/error text remains outside the scroll area.
+
+### 2.12 Admin / System Health — `2024:2653` (P8, 2026-11-15)
+
+Full-detail tree/component/token/icon maps (no matches/bindings); complete motion158/no animation; reference screenshot reviewed. Flattened frame reuses energy workspace/shadcn/theme, Inter29/17/11–12px/navy-secondary-border/radii9/12/13. Four infrastructure cards, three-column deployment readiness and public-hosting notice retained.
+
+**Existing and verified:** Admin-only page, on-demand real local checks and bounded/redacted JSON; loading/error/retry clears old results, source-time display, explicit Unknown/Unverified/Unconfigured states. Demo/reset replaced by Run checks; diagnostic card is a documented functional extension. Versioned model lifecycle copy reflects implemented P6 rather than prototype Proposed. No green production-ready claim. Hosting/DPO/backup/monitoring/firewall/TLS decisions are not inferred from config. Desktop1440/mobile390 browser checked and screenshots reviewed; wide readiness table scrolls internally.
+
+### 2.13 Admin / Settings — `2024:2495` (P8, 2026-11-15)
+
+Full-detail tree/component/icon maps (no matches), prior file token map reused; complete motion158/no animation; reference screenshot reviewed. Flattened two-column planning/governance cards, building/latest-period controls and solar warning reuse responsive containers/shadcn/theme; shared type/palette/radii retained.
+
+**Existing and verified read-only scope:** Admin/EM System Settings page, real building/complete verified source period, five readonly Not configured planning fields and allowlisted technical configuration. Prototype15% threshold/Save demonstration settings/browser-memory controls are not policy and are omitted. PV capacity uses actual kWp screening unit, no saved assumptions. Governance note reflects disabled C5 and required versions/effective dates. Account/scenario links and technical card are implementation extensions; Fortify personal settings preserved separately. Desktop1440/mobile390 read-only/filter/role/link/overflow/JS checks passed. Numeric settings writes remain gated, not implemented.
+
 ## 3. Pending-inspection frames
 
 **P5 verified (2026-11-14):** Preprocessing `2024:607`, Energy Analytics `2024:776`, Building Comparison `2024:938`. Preprocessing root appearance-budget fallback was followed by scoped card/text reads; no geometry-derived per-child positioning. Full-detail analytics/comparison and complete motion reads (169/162/135 nodes; none animated); maps no bindings/matches. Shared Inter/29px heading/17px card title/11–12px tables/navy/white/secondary palette and 9/12/13px radii reused. Browser desktop/mobile reviewed.
@@ -117,7 +153,7 @@ The table tracks verified screens and remaining role sections. Any unread frame 
 
 | Section / role | Frames | Status |
 | --- | --- | --- |
-| Admin | Dashboard `2024:3`, Users & Access `2024:2179`, Buildings & Meters `2024:176`, Data Management `2024:316`, Verification Queue `2024:481`, Preprocessing `2024:607`, Analytics `2024:776`, Comparison `2024:938`, Forecasting `2024:1073`/`2024:3230`, Model Evaluation `2024:1181`, Decision Support `2024:1332`, Solar `2024:1584` verified. Remaining P8 screens pending | Partially verified |
+| Admin | Dashboard `2024:3`, Users & Access `2024:2179`, Buildings & Meters `2024:176`, Data Management `2024:316`, Verification Queue `2024:481`, Preprocessing `2024:607`, Analytics `2024:776`, Comparison `2024:938`, Forecasting `2024:1073`/`2024:3230`, Model Evaluation `2024:1181`, Decision Support `2024:1332`, Solar `2024:1584`, Audit Logs `2024:2356`, Action Tracker `2024:1465`, Reports `2024:1870`, Notifications `2024:2020`, System Health `2024:2653`, Settings `2024:2495` verified; tariff-dependent Budget Planning remains gated | Unblocked listed screens verified |
 | Energy Manager | Unknown | Pending inspection |
 | Facilities Personnel | Buildings & Meters `2024:7413` verified (§2.4); other screens pending | Partially verified |
 | Budget Officer | Unknown | Pending inspection |
@@ -155,6 +191,12 @@ All other colors/typography/spacing must be extracted per-frame via Figwright �
 - **Error:** use `alert-error.tsx` + backend validation messages.
 - **Success:** `sonner` toasts + status badges.
 - **Responsive:** preserve verified desktop design (1440px) first; degrade gracefully with Tailwind breakpoints.
+
+**P9 accessibility deviation (2026-11-15):** exact prototype secondary text `#66758B` on page `#F5F7FB` measured4.36:1, below normal-text AA. Shared page descriptions/filter labels/footer use existing palette body `#52647E` in light mode, retaining dark overrides/card text. Disabled sidebar text opacity60→75% fixes measured3.97:1. P8 horizontally scrolling tables now have named focusable regions/visible focus; keyboard ArrowRight verified. Axe WCAG2A/AA+2.1AA,6 P8 pages at1440/390, returned0 violations after these targeted fixes. Inconclusive contrast/empty-table items require manual review; broader P1–P7/populated/dialog/error coverage is not claimed. These are documented accessibility adaptations, not Figma-verified new colors/layouts.
+
+**P9 populated/dialog continuation:**12 additional scans of populated notices/action/audit and follow-up/history/audit-evidence dialogs at1440/390 passed with0 violations/overflow/JS errors. Explicit close-autofocus callbacks return keyboard focus to opening buttons; shared DialogDescription/action secondary text uses the same existing light body palette with dark overrides. Tab containment/Escape/focus return verified on all3 dialogs. Measurements wait for animations to finish; no visual transitions removed. Total24 scoped scans; core/error/screen-reader and axe inconclusive checks remain manual follow-up.
+
+**P9 expanded local review (supersedes the coverage limit above):** 73 additional core/dialog/error/auth/personal-settings/mobile-navigation state/viewport cases passed; prior24 P8 cases regression-checked due to shared fixes. Light muted token now uses existing `#52647E` consistently after repeated4.36/4.47:1 failures on page/intake/dialog backgrounds; light destructive/error token `#B91C1C` replaces4.44:1 red, and preprocessing badge text `#1B6B59` replaces4.38:1 green. Dark token values retained. These darker red/green values are accessibility adaptations, not Figma-extracted colors. Filter labels, named keyboard-scroll regions, actual chart text alternatives, field/error associations and selected Appearance state added. Shared Dialog/Sheet restore opener focus while honoring existing callbacks; hidden tooltips mount only for collapsed desktop icons so they cannot consume mobile Escape. Scoped inconclusive contrast/empty-table/aria-hidden items have DOM/computed-color/keyboard evidence in `P9_VERIFICATION.md`. Existing geometry/components preserved; human-operated screen-reader and broader acceptance remain pending.
 
 ## 7. Change log
 

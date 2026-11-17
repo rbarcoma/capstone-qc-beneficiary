@@ -10,44 +10,35 @@ import {
 } from '@/components/ui/table';
 import { usersAccess } from '@/routes';
 import type { UsersAccessData } from '@/types';
+import UserManagement from '@/components/user-management';
 
 export default function UsersAccess() {
-    const { roles, matrix } = usePage().props as unknown as UsersAccessData;
+    const data = usePage().props as unknown as UsersAccessData;
+    const { roles, matrix } = data;
 
     return (
         <>
             <Head title="Users & Access" />
             <div className="flex flex-1 flex-col gap-6 px-7 pt-6 pb-10">
-                <div>
-                    <p className="text-[11px] font-bold tracking-[0.06em] text-[#2e61a1] uppercase">
-                        QC Energy Intelligence • Workspace
-                    </p>
-                    <h1 className="mt-1.5 text-[29px] leading-9 font-semibold text-[#1c2b40]">
-                        Users &amp; Access
-                    </h1>
-                    <p className="mt-2 text-[14px] text-muted-foreground">
-                        Manage five proposed operational roles, least privilege
-                        and building assignment.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {roles.map((role) => (
-                        <Card
-                            key={role.name}
-                            className="rounded-[12px] border-border bg-card shadow-none"
-                        >
-                            <CardContent className="flex flex-col gap-2 px-5 py-4">
-                                <span className="text-[12px] font-semibold text-muted-foreground">
-                                    {role.name}
-                                </span>
-                                <span className="text-[23px] leading-8 font-bold text-[#1c2b40]">
-                                    {role.status}
-                                </span>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                <UserManagement data={data}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {roles.map((role) => (
+                            <Card
+                                key={role.name}
+                                className="rounded-[12px] border-border bg-card shadow-none"
+                            >
+                                <CardContent className="flex flex-col gap-2 px-5 py-4">
+                                    <span className="text-[12px] font-semibold text-muted-foreground">
+                                        {role.name}
+                                    </span>
+                                    <span className="text-[23px] leading-8 font-bold text-[#1c2b40]">
+                                        {role.status}
+                                    </span>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </UserManagement>
 
                 <Card className="rounded-[13px] border-border bg-card">
                     <CardHeader className="pb-3">
@@ -56,7 +47,7 @@ export default function UsersAccess() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Role permission matrix">
                             <TableHeader>
                                 <TableRow className="border-0 hover:bg-transparent">
                                     <TableHead className="h-10 rounded-l-[6px] bg-[#eff4fb] px-3 text-[11px] font-semibold text-primary">

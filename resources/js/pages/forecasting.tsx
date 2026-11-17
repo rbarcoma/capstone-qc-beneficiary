@@ -189,7 +189,10 @@ export default function Forecasting() {
                                         actual observation.
                                     </p>
                                     <div
-                                        className="overflow-x-auto"
+                                        className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring"
+                                        role="region"
+                                        aria-label="Observed and forecast energy chart"
+                                        tabIndex={0}
                                         ref={(element) => {
                                             if (element)
                                                 element.scrollLeft =
@@ -198,7 +201,7 @@ export default function Forecasting() {
                                     >
                                         <div
                                             role="img"
-                                            aria-label="Verified observations and separately marked forecast"
+                                            aria-label={`Verified observations in kWh: ${observationBars.map((row) => `${row.month.slice(0, 7)}: ${formatEnergy(row.kwh)}`).join('; ')}. Issued forecast, not an actual: ${current.targetMonth.slice(0, 7)}: ${formatEnergy(current.predictionKwh)} kWh.`}
                                             className="flex min-w-max items-end gap-3 border-b pt-4"
                                         >
                                             {[
@@ -302,7 +305,7 @@ export default function Forecasting() {
                                 operational forecast; source-superseded values
                                 are withheld.
                             </p>
-                            <Table>
+                            <Table aria-label="Recorded forecast runs">
                                 <TableHeader>
                                     <TableRow>
                                         {[

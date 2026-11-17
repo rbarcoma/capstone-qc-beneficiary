@@ -32,7 +32,7 @@ class EnsureUserHasRole
         );
 
         if (! $user->hasRole(...$allowed)) {
-            if ($request->routeIs('data-management.*', 'monthly-records.*', 'verification-queue', 'preprocessing*', 'datasets.*', 'forecasting.*', 'recommendations.*')) {
+            if ($request->routeIs('data-management.*', 'monthly-records.*', 'verification-queue', 'preprocessing*', 'datasets.*', 'forecasting.*', 'recommendations.*', 'audit-logs', 'audit-logs.*', 'actions.*', 'notifications.*', 'system-health', 'system-health.*', 'system-settings')) {
                 AuditLog::create(['actor_id' => $user->id, 'event' => 'authorization.denied', 'reason' => $request->method().' '.$request->route()?->getName()]);
             }
             abort(403, 'You do not have permission to perform this action.');

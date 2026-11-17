@@ -393,7 +393,12 @@ export default function DecisionSupport() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="overflow-x-auto">
+                        <div
+                            className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring"
+                            role="region"
+                            aria-label="Recommendation review table"
+                            tabIndex={0}
+                        >
                             <table className="w-full min-w-[780px] text-left text-xs">
                                 <thead className="bg-secondary text-[11px] text-primary">
                                     <tr>

@@ -29,7 +29,7 @@ export function EnergyHeader({
                 <h1 className="mt-1.5 text-[29px] leading-9 font-semibold">
                     {title}
                 </h1>
-                <p className="mt-2 text-[14px] text-muted-foreground">
+                <p className="mt-2 text-[14px] text-[#52647e] dark:text-muted-foreground">
                     {description}
                 </p>
             </div>
@@ -58,7 +58,7 @@ export function EnergyFilters({
             <div className="space-y-1.5">
                 <Label
                     htmlFor="energy-building"
-                    className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                    className="text-[10px] font-bold tracking-[0.08em] text-[#52647e] uppercase dark:text-muted-foreground"
                 >
                     Building
                 </Label>
@@ -85,7 +85,7 @@ export function EnergyFilters({
             <div className="space-y-1.5">
                 <Label
                     htmlFor="energy-latest"
-                    className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                    className="text-[10px] font-bold tracking-[0.08em] text-[#52647e] uppercase dark:text-muted-foreground"
                 >
                     Latest verified period
                 </Label>
@@ -149,7 +149,7 @@ export function EnergyNotice({
 
 export function EnergyFooter() {
     return (
-        <footer className="border-t border-border pt-4 text-[11px] text-muted-foreground">
+        <footer className="border-t border-border pt-4 text-[11px] text-[#52647e] dark:text-muted-foreground">
             QC Energy Intelligence • Quezon City Hall Energy Analytics,
             Forecasting, and Decision Support System. Reference: technical
             proposal dated October 25, 2026.

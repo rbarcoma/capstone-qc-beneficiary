@@ -154,10 +154,15 @@ export default function EnergyAnalytics() {
                                     No verified values to chart
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div
+                                    className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring"
+                                    role="region"
+                                    aria-label="Monthly energy chart"
+                                    tabIndex={0}
+                                >
                                     <div
                                         role="img"
-                                        aria-label="Verified monthly kWh bar chart"
+                                        aria-label={`Verified monthly kWh: ${chart.map((row) => `${row.month.slice(0, 7)}: ${formatEnergy(row.kwh)}`).join('; ')}`}
                                         className="flex min-w-max items-end gap-3 border-b pt-4"
                                     >
                                         {chart.map((row) => (
@@ -232,7 +237,7 @@ export default function EnergyAnalytics() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Verified monthly energy evidence">
                             <TableHeader>
                                 <TableRow>
                                     {[

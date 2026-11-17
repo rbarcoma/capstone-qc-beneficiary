@@ -1,6 +1,6 @@
-# Forecast worker — P6 contract checkpoint
+# Forecast worker — verified P6 contract and P8 runtime diagnostic
 
-The worker is invoked by Laravel as an argument-array subprocess, JSON on stdin/stdout. It never writes models/data or issues an operational forecast. `PythonForecast::evaluate()` authorizes Admin/Energy Manager, checks current dataset lineage and rejects a newer incomplete/unverified period before invoking the worker. Returned results include dataset identity/version/fingerprint. Persistence/publication and a final locked freshness check belong to the next P6 task.
+The worker is invoked by Laravel as an argument-array subprocess, JSON on stdin/stdout. The Python script never writes models/data or issues an operational forecast itself. `PythonForecast::evaluate()` authorizes Admin/Energy Manager, checks current dataset lineage and rejects a newer incomplete/unverified period before invoking the worker. Returned results include dataset identity/version/fingerprint. Verified P6 `ForecastIssuance` validates output/evidence and rechecks actor/source/runtime under locks before immutable publication; `ForecastActuals` reconciles/retracts verified target errors. Scoped UI/storage are implemented; see the P6 progress entry.
 
 ## Runtime
 
@@ -26,4 +26,8 @@ Input: `{ "contract_version": 1, "records": [...] }`, sorted unique first-of-mon
 - Error band = next prediction ± maximum absolute observed walk-forward error, lower bounded by physical zero. **Not a calibrated confidence interval**, no asserted probability/95% coverage. Negative primary predictions are rejected, not silently replaced/clamped/promoted to baseline.
 - Sufficient results return computed evidence, metrics and prediction; insufficient cases return a reason with no prediction. Invalid JSON/schema returns a JSON error and exit 2. Source data is never changed.
 
-All tests use explicitly synthetic fixtures in isolated tests, never official analytics. Operational storage, realized-target error reconciliation, Forecasting/Model Evaluation UI, and final before-publication freshness locking remain unfinished P6 tasks.
+All tests use explicitly synthetic fixtures in isolated tests, never official building accuracy results.
+
+## P8 System Health diagnostic
+
+Admin-triggered `python/health.py` imports pinned dependencies, verifies installed versions against `requirements.txt`, and performs a tiny in-memory Linear Regression estimator smoke check. It receives no billing data and creates no operational forecast. Laravel invokes it using isolated/no-bytecode flags (`-I -B`), one-thread bounds and a5-second timeout, returning only sanitized status/version text. Local runtime success is not model accuracy or production-readiness evidence. Missing runtime/pins return a failed check; no setup is automatically run.

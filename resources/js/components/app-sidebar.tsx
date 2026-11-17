@@ -36,6 +36,12 @@ import AnalyticsController from '@/actions/App/Http/Controllers/AnalyticsControl
 import ForecastController from '@/actions/App/Http/Controllers/ForecastController';
 import SolarScenarioController from '@/actions/App/Http/Controllers/SolarScenarioController';
 import DecisionSupportController from '@/actions/App/Http/Controllers/DecisionSupportController';
+import AuditLogController from '@/actions/App/Http/Controllers/AuditLogController';
+import ActionTrackerController from '@/actions/App/Http/Controllers/ActionTrackerController';
+import ReportController from '@/actions/App/Http/Controllers/ReportController';
+import NotificationController from '@/actions/App/Http/Controllers/NotificationController';
+import SystemHealthController from '@/actions/App/Http/Controllers/SystemHealthController';
+import SystemSettingsController from '@/actions/App/Http/Controllers/SystemSettingsController';
 import type { NavGroup, UserRole } from '@/types';
 
 // Provisional role visibility per the proposed permission matrix
@@ -126,9 +132,8 @@ const navGroups: NavGroup[] = [
             },
             {
                 title: 'Action Tracker',
-                href: null,
+                href: ActionTrackerController.index(),
                 icon: ListChecks,
-                disabled: true,
             },
             {
                 title: 'Solar & Scenarios',
@@ -147,8 +152,16 @@ const navGroups: NavGroup[] = [
     {
         label: 'Operations',
         items: [
-            { title: 'Reports', href: null, icon: FileText, disabled: true },
-            { title: 'Notifications', href: null, icon: Bell, disabled: true },
+            {
+                title: 'Reports',
+                href: ReportController.index(),
+                icon: FileText,
+            },
+            {
+                title: 'Notifications',
+                href: NotificationController.index(),
+                icon: Bell,
+            },
         ],
     },
     {
@@ -162,23 +175,20 @@ const navGroups: NavGroup[] = [
             },
             {
                 title: 'Audit Logs',
-                href: null,
+                href: AuditLogController.index(),
                 icon: ScrollText,
-                disabled: true,
                 roles: ADMIN,
             },
             {
-                title: 'Settings',
-                href: null,
+                title: 'System Settings',
+                href: SystemSettingsController.index(),
                 icon: Settings,
-                disabled: true,
                 roles: ADMIN_EM,
             },
             {
                 title: 'System Health',
-                href: null,
+                href: SystemHealthController.index(),
                 icon: HeartPulse,
-                disabled: true,
                 roles: ADMIN,
             },
         ],
@@ -186,7 +196,10 @@ const navGroups: NavGroup[] = [
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage().props;
+    const { auth, navigationModules } = usePage().props;
+    const modulesByLabel = navigationModules as
+        | Record<string, string>
+        | undefined;
 
     const role = auth.user?.role;
     const filteredGroups: NavGroup[] = navGroups
@@ -194,9 +207,13 @@ export function AppSidebar() {
             ...group,
             items: group.items.filter(
                 (item) =>
-                    !item.roles ||
-                    role === undefined ||
-                    item.roles.includes(role),
+                    (!item.roles ||
+                        role === undefined ||
+                        item.roles.includes(role)) &&
+                    (!modulesByLabel?.[item.title] ||
+                        auth.user?.accessibleModules?.includes(
+                            modulesByLabel[item.title],
+                        )),
             ),
         }))
         .filter((group) => group.items.length > 0);

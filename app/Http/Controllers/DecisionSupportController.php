@@ -48,7 +48,7 @@ class DecisionSupportController extends Controller
         });
         $owners = $user->hasRole(UserRole::EnergyManager) && $building ? User::query()
             ->where(fn ($query) => $query->where('role', '!=', UserRole::FacilitiesPersonnel->value)->orWhereHas('buildings', fn ($query) => $query->whereKey($building->id)))
-            ->orderBy('name')->get(['id', 'name', 'role'])->map(fn (User $owner) => $owner->only(['id', 'name', 'role'])) : [];
+            ->orderBy('name')->get()->filter(fn (User $owner) => $owner->canAccessModule('action_tracker'))->map(fn (User $owner) => $owner->only(['id', 'name', 'role']))->values() : [];
 
         return Inertia::render('decision-support', [
             'buildings' => $buildings->map(fn (Building $item) => $item->only(['id', 'code', 'name'])), 'selectedBuildingCode' => $code,

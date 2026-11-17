@@ -357,7 +357,7 @@ export default function DataManagement() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Monthly billing records">
                             <TableHeader>
                                 <TableRow>
                                     {[

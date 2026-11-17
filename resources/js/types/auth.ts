@@ -12,6 +12,7 @@ export type User = {
     role: UserRole;
     roleLabel: string;
     allowedBuildingIds: number[] | null;
+    accessibleModules: string[];
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

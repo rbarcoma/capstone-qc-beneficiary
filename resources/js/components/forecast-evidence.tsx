@@ -17,7 +17,7 @@ export function ForecastMetrics({
 }) {
     return (
         <>
-            <Table>
+            <Table aria-label="Forecast model metrics">
                 <TableHeader>
                     <TableRow>
                         {[
@@ -92,7 +92,7 @@ export function BacktestEvidence({
     run: ForecastRun | null | undefined;
 }) {
     return (
-        <Table>
+        <Table aria-label="Walk-forward forecast evidence">
             <TableHeader>
                 <TableRow>
                     {[

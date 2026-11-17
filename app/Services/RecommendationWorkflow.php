@@ -44,7 +44,7 @@ class RecommendationWorkflow
             $action = null;
             if ($data['decision'] === 'accepted') {
                 $owner = User::query()->lockForUpdate()->find((int) $data['owner_id']);
-                if (! $owner || ! $owner->can('view', $current)) {
+                if (! $owner || ! $owner->canAccessModule('action_tracker') || ! $owner->can('view', $current)) {
                     throw ValidationException::withMessages(['owner_id' => 'Choose an owner with access to this recommendation and building.']);
                 }
                 $action = Action::create(['recommendation_id' => $current->id, 'owner_id' => $owner->id, 'title' => $current->title, 'due_date' => $data['due_date'], 'status' => 'open']);

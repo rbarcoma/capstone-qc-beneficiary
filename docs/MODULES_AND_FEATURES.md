@@ -97,30 +97,30 @@
 - **Depends on:** M8.
 
 ### M13. Action Tracker
-- **Status:** P7 action creation with explicit authorized owner/due date and Decision Support summary is **Existing and verified**. Standalone tracker/status/outcome editing remains **Proposed (P8)**; no automatic procurement decision.
-- **Depends on:** M10, alerts.
+- **Status:** **Existing and verified P7 creation + P8 minimal tracker/lifecycle**: scoped building/status filters, real counts, source/owner/due date, human-reported outcomes, paginated history, EM-only Open→Open follow-up / Open→Completed, version/locks/acceptance-ledger guards and atomic history/audit. Completed history final; source/assignment/title fixed. Facilities inherit assigned-building/non-cost recommendation visibility; other roles (including owners/Admin) read-only. This conservative working convention follows proposal Table13/Table14 step8; delegated writes/reopen/reassignment/extra states/overdue policy remain unspecified extensions. No automatic savings/procurement conclusion.
+- **Depends on:** retained accepted M10 action. Follow-through may continue after its forecast/policy becomes historical; it cannot create advice or bypass disabled C5. Alerts not required for manual tracking.
 
 ### M14. Reports
-- **Status:** Existing in capstone but **unverified** — proposal Table 20 #9 explicitly requires verifying PDF/Excel export in the working system; executive summary PDF = Proposed.
-- **Users:** Budget Officer, Viewer, Admin, Energy Manager.
+- **Status:** **Existing and verified P8 (2026-11-15)** — INTERNAL executive PDF and billing/analytics/model-evidence Excel, real render/read-back/browser checks; current authorized complete verified datasets/current issued next-eligible forecast only. Reviewed fingerprint/final locked source+actor+scope recheck and atomic download-preparation audit with byte hash/count. Historical open accepted actions labeled; C5/tariff outputs unavailable. No private account refs/notes; Facilities cost columns/advice excluded. Private/no-store, POST+CSRF+throttle; renderer/audit/stale failures release no successful export. Synchronous cap5000 billing/500 advice/500 actions, no partial truncation. No saved public report files.
+- **Users:** Budget Officer, Viewer, Admin, Energy Manager; Facilities own buildings/non-cost exports (proposal Table4).
 - **Acceptance criteria:** reports marked internal; downloads audited.
 - **Depends on:** M6/M8/M10.
 
 ### M15. Notifications / Alerts
-- **Status:** Proposed (proposal §10.4 Table 12): new data awaiting verification (→ Energy Manager), forecast ready (→ EM, Budget), high-priority recommendation, month overdue (→ Facilities, EM), forecast error above tolerance 3 months (→ EM, Admin). Channels: in-app + email (SMTP proposed).
-- **Depends on:** queues (P8+), M3/M8/M10.
+- **Status:** **Existing and verified P8 policy-independent in-app slice (2026-11-15)** — current draft/version notices for Energy Manager, current issued eligible forecast/run for Energy Manager/Budget Officer; current persisted roles, no implicit Admin recipient. Live inbox (not historical delivery ledger), personal idempotent read receipts, stable pagination/read filter/mark-one-or-reviewed-page, locked freshness and atomic audit. Verified/removed drafts and superseded forecasts disappear; corrected versions unread. No source values/notes/account refs exposed. Other roles receive no current notice types. **Proposed/unconfigured:** SMTP/queued delivery/scheduled reminders; high-priority-C5 alerts remain disabled, overdue/tolerance contracts absent. No bill verification/advice acceptance through read state.
+- **Depends on:** M3/M8 current sources; receipt persistence migration `000012`. Email/scheduled channels retain their queue/SMTP dependencies; current in-app notices need no worker.
 
 ### M16. Users & Access
 - **Status:** **Reference page implemented in P2 (2026-11-14)** — Admin page matching Figma frame `2024:2179` (role status cards Existing/Proposed + role-based permission matrix). The five roles + building permissions are now **implemented server-side** (role column, `App\Enums\UserRole`, `role:` middleware, `user_building` pivot); the wider permission matrix in `docs/ROLES_AND_PERMISSIONS.md` §2 remains **Proposed** pending City Hall confirmation. User CRUD / role-assignment UI is **not in the frame** and not implemented.
 - **Depends on:** P2 (roles landed).
 
 ### M17. Audit Logs
-- **Status:** **Existing and verified P4 event-storage foundation** — uploads/verifications/corrections with actor + before/after, and scoped P4 permission denials. Operational revision history is available to authorized reviewers. Global Admin-only audit viewer and future-module events remain Proposed (P8+).
+- **Status:** **Existing and verified P4–P7 storage + P8 Admin viewer** — recorded uploads/verifications/corrections, weather/datasets, forecast issuance/reconciliation/failures, scenarios/decisions/actions, report download preparation and scoped permission denials. Admin-only filtered/paginated list and on-demand immutable before/after/reason details, inclusive Manila dates and private/no-store responses. Historical roles were not recorded; actor names reflect current accounts and null actors retain an explicit unattributed label. Download counts mean audited preparation, not receipt. Unimplemented-module logging remains Proposed; not a claim of complete system activity coverage. Operational revision history remains available to authorized reviewers.
 - **Acceptance criteria:** covers uploads, verifications, corrections, forecast runs, decisions, downloads, permission denials of interest; viewable by Admin only.
 - **Depends on:** P4 onward.
 
 ### M18. Settings & System Health
-- **Status:** Settings = existing starter-kit user settings (verified) + proposed system settings (thresholds, tariffs, targets); System Health = Proposed (proposal §6.1 Admin purpose).
+- **Status:** **Existing and verified P8 unblocked scope (2026-11-15).** System Health: Admin-only page and on-demand throttled/private/no-store DB read/local-directory permission/Python pin-import-estimator diagnostics;5-second isolated process, redacted independent failures, no source/config mutations. Worker/scheduler/SMTP/backups/TLS/firewall/production approval remain explicitly unverified; local passed checks do not establish readiness. System Settings: Admin/EM-only read-only14-key configuration allowlist, real building/latest complete verified period, null tariff/target/threshold/PV defaults, no save endpoints. Fresh roles + named Gates/route middleware; denials audited. Existing Fortify account settings preserved. **Blocked / requires contracts:** numeric parameter editing, effective dates, tariff/budget cycle, target ownership and C5 trigger/evidence/priorities. Prototype15% is excluded.
 - **Depends on:** P8.
 
 ---
@@ -129,8 +129,8 @@
 
 | Feature | Status | Source |
 | --- | --- | --- |
-| Weather data ingestion | Proposed; source (NASA POWER / PAGASA) recorded per value | Proposal §9.3 |
-| Monthly operating routine | Proposed workflow (§11.1, 8 steps) | Proposal §11 |
+| Weather data ingestion | Existing and verified P5: user-approved NASA POWER daily-to-monthly ingestion with retained values/units/provenance; no repeat ingestion required for P9 | P5 progress; `NASA_POWER_DATA_CONTRACT.md`; proposal §9.3 |
+| Monthly operating routine | Existing and verified technical subset: HTTP intake/independent verification/preprocessing/real-worker forecast/distribution/actual-correction cycle on synthetic isolated fixtures. C5 recommendation decisions, tariff budget steps and office/production acceptance remain blocked; the full operational routine is not complete | `P9_VERIFICATION.md`; proposal §11.1 |
 | Scheduled monthly forecast job | Proposed (scheduler + Redis queues) | Proposal §8.1 |
 | HTTPS, backups, monitoring, least-privilege DB user | Proposed (production) | Proposal §12.2 |
 

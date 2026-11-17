@@ -15,10 +15,12 @@
 | Routing | Laravel Wayfinder (`^0.1`) — generated typed route/controller actions | `resources/js/actions/`, `resources/js/routes/` |
 | Build | Vite (vite-plus core) + babel react-compiler | `vite.config.ts`, `package.json` |
 | Database | MySQL via Laravel Sail (dev), forwarded port 3309, DB `capstone_qc_beneficiary` | `.env`, `compose.yaml` |
-| ML (planned) | Python + scikit-learn invoked from Laravel | Not present in this repo; see `docs/ML_AND_DSS_RULES.md` |
+| ML | Isolated Python/scikit-learn invoked from Laravel | Verified P6 worker, locked publication/evaluation and actual reconciliation; see `docs/ML_AND_DSS_RULES.md` |
 | Tooling | Pint (lint), Larastan/PHPStan (types), PHPUnit 12 | `composer.json` scripts |
 
-## 2. Directory map (current, verified)
+## 2. Historical starter directory map (verified 2026-11-13)
+
+Current domain controllers/services/models/pages and tests extend this original baseline. Authoritative per-module files/status are in `IMPLEMENTATION_PROGRESS.md`; this dated map is retained as historical context, not a claim that the repo has only a User model.
 
 ```
 app/
@@ -83,6 +85,8 @@ Key constraints preserved from the proposal:
 - Audit every upload, correction, verification, forecast run, decision, and download (proposal §12.2).
 
 ## 5. Architectural decisions already made (in this repo)
+
+**P8/P9 additions (2026-11-15):** scoped exports render in memory, final-check source/actor/permissions under locks and commit preparation audits before release. Live operational notices derive current sources with personal read receipts (no SMTP/queue delivery claim). Admin System Health runs only explicit bounded read/permission/runtime diagnostics; System Settings is an Admin/EM read-only allowlist with no policy-setting writes. C5 remains null. Feature tests are independent of developer Vite/SSR; isolated synthetic monthly-cycle integration and scope-limited accessibility evidence are in `P9_VERIFICATION.md`.
 
 | Decision | Rationale |
 | --- | --- |

@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed> $metrics
  * @property array<string, mixed> $features
  * @property array<string, mixed>|null $weather_snapshot
+ * @property list<array<string, mixed>> $source_snapshot
  */
 #[Fillable(['dataset_id', 'month', 'kwh', 'cost_php', 'source_snapshot', 'weather_record_id', 'weather_snapshot', 'weather_complete', 'features', 'metrics'])]
 class ProcessedRecord extends Model

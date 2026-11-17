@@ -152,7 +152,7 @@ export default function Preprocessing() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
+                            <Table aria-label="Monthly preprocessing steps">
                                 <TableHeader>
                                     <TableRow>
                                         {[
@@ -204,7 +204,7 @@ export default function Preprocessing() {
                                                 {description}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge className="bg-[#e9f6f1] text-[10px] text-[#237f6a]">
+                                                <Badge className="bg-[#e9f6f1] text-[10px] text-[#1b6b59]">
                                                     {status}
                                                 </Badge>
                                             </TableCell>
@@ -245,7 +245,7 @@ export default function Preprocessing() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Missing month review">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="bg-secondary text-xs text-primary">
@@ -306,7 +306,7 @@ export default function Preprocessing() {
                                 No dataset versions yet.
                             </p>
                         ) : (
-                            <Table>
+                            <Table aria-label="Dataset versions">
                                 <TableHeader>
                                     <TableRow>
                                         {[
@@ -370,7 +370,7 @@ export default function Preprocessing() {
                             Shared coarse-grid City Hall reference, not on-site
                             measurements.
                         </p>
-                        <Table>
+                        <Table aria-label="NASA POWER monthly weather">
                             <TableHeader>
                                 <TableRow>
                                     {[

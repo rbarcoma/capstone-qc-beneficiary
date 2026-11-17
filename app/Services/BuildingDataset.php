@@ -55,6 +55,9 @@ class BuildingDataset
         return DB::transaction(function () use ($building, $user, $through) {
             $current = Building::lockForUpdate()->findOrFail($building->id);
             $data = $this->collect($current, $through, true);
+            $actor = User::lockForUpdate()->findOrFail($user->id);
+            Gate::forUser($actor)->authorize('create', Dataset::class);
+            abort_unless($actor->hasBuildingAccess($current), 403);
             if ($data['rows'] === []) {
                 throw ValidationException::withMessages(['dataset' => 'No complete verified building months are available. Verify every required meter for a month first.']);
             }

@@ -163,7 +163,7 @@ export default function BuildingComparison() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Common-period building comparison">
                             <TableHeader>
                                 <TableRow>
                                     {[

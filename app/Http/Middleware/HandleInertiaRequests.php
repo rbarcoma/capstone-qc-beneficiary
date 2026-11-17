@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ModuleAccess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -44,9 +45,11 @@ class HandleInertiaRequests extends Middleware
                     'role' => $request->user()->role->value,
                     'roleLabel' => $request->user()->role->label(),
                     'allowedBuildingIds' => $request->user()->allowedBuildingIds(),
+                    'accessibleModules' => $request->user()->accessibleModules(),
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'navigationModules' => collect(ModuleAccess::catalogue())->mapWithKeys(fn ($module, $key) => [$module['label'] => $key]),
         ];
     }
 }

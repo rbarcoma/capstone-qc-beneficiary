@@ -61,12 +61,12 @@ Incremental, phase-gated plan. **No phase is complete because its Figma design e
 ## P8 — Reports, Audit Logs, and operational enhancements
 
 - **Tasks:** reports (executive summary PDF, Excel export — **verify before treating as complete**, proposal Table 20 #9), alerts/notifications (Table 12), action tracker UI, settings (thresholds/tariffs/targets — tariff source is an open item), audit log viewer, system health.
-- **Depends on:** P4–P7 subsets. **Status:** Not started
+- **Depends on:** P4–P7 subsets. **Status:** **Unblocked scope Existing and verified; gated enhancements pending (2026-11-15)** — audit viewer, scoped minimal Action Tracker, INTERNAL PDF/Excel Reports, current-source in-app Notifications, Admin measured System Health and Admin/EM read-only System Settings verified. Final backend243 /240 passed/3 existing skips, Python7, frontend/browser checks passed. No migration after `000012`. Numeric settings/SMTP/scheduled notifications/overdue/error-tolerance and optional delegated lifecycle retain their contract/dependency gates. C5 generator disabled, no automatic savings attribution or production-readiness claim.
 
 ## P9 — Integration, security, testing, and final review
 
 - **Tasks:** end-to-end monthly cycle test (§11.1 8 steps), security pass (HTTPS/least-privilege/backups = production decisions; several are Blocked on City Hall choices), accessibility + responsive checks, full `composer test` + types + build, documentation refresh.
-- **Status:** Not started
+- **Status:** **In progress — local technical review verified; reviewer/production acceptance pending (2026-11-15)**. Retained monthly-cycle real-worker/default-null-C5 integration1/165, full243 tests/Python7 and clean dependency checkpoints. Expanded local accessibility adds73 passing core/dialog/error/auth/settings/mobile cases; prior24 P8 cases regression-checked for shared token/focus fixes. Scoped inconclusive items reviewed with178 computed-color samples, keyboard containment/scrolling and accessibility-tree/empty-table evidence. Two new security cases verify real CSRF middleware on19 mutation routes and registration privilege-injection resistance; no application backend change. Final frontend/Pint/PHPStan checks passed. Human-operated assistive-technology review and City Hall policy/privacy/hosting/backup/TLS acceptance remain pending; coverage is not universal WCAG certification. See `docs/P9_VERIFICATION.md`.
 
 ## Dependency graph
 

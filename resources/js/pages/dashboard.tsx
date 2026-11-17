@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -124,15 +125,21 @@ export default function Dashboard() {
 
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                        <Label
+                            htmlFor="dashboard-building"
+                            className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                        >
                             Building
-                        </span>
+                        </Label>
                         <Select
                             value={selectedBuildingCode ?? undefined}
                             onValueChange={selectBuilding}
                             disabled={buildings.length === 0}
                         >
-                            <SelectTrigger className="h-10 w-[185px] rounded-[9px] border-input bg-card text-[13px] font-bold text-[#1c2b40]">
+                            <SelectTrigger
+                                id="dashboard-building"
+                                className="h-10 w-[185px] rounded-[9px] border-input bg-card text-[13px] font-bold text-[#1c2b40]"
+                            >
                                 <SelectValue placeholder="No buildings registered" />
                             </SelectTrigger>
                             <SelectContent>
@@ -148,10 +155,14 @@ export default function Dashboard() {
                         </Select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                        <Label
+                            htmlFor="dashboard-period"
+                            className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                        >
                             Latest verified period
-                        </span>
+                        </Label>
                         <Input
+                            id="dashboard-period"
                             readOnly
                             value={latestVerifiedPeriod ?? 'No verified record'}
                             className="h-10 w-[241px] rounded-[9px] border-input bg-card text-[13px] font-bold text-[#1c2b40]"
@@ -202,7 +213,11 @@ export default function Dashboard() {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex h-[160px] items-end gap-2">
+                                <div
+                                    className="flex h-[160px] items-end gap-2"
+                                    role="img"
+                                    aria-label={`Verified monthly energy in kWh: ${trend.map((point) => `${point.month}: ${point.kwh}`).join('; ')}`}
+                                >
                                     {trend.map((point) => (
                                         <div
                                             key={point.month}
@@ -265,7 +280,7 @@ export default function Dashboard() {
                                 No pilot buildings registered yet
                             </div>
                         ) : (
-                            <Table>
+                            <Table aria-label="Pilot building readiness">
                                 <TableHeader>
                                     <TableRow className="border-0 hover:bg-transparent">
                                         <TableHead className="h-10 rounded-l-[6px] bg-[#eff4fb] px-3 text-[11px] font-semibold text-primary">

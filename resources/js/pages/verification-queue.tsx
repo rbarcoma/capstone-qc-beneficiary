@@ -158,7 +158,7 @@ export default function VerificationQueue() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Monthly verification queue">
                             <TableHeader>
                                 <TableRow>
                                     {[

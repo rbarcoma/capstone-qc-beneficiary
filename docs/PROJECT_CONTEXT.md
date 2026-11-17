@@ -25,7 +25,7 @@ Quezon City Hall pays monthly Meralco electricity bills for its buildings. The Q
 
 | Priority | Source | Authoritative for | Caveat |
 | --- | --- | --- | --- |
-| 1 | Code in this repo | What is implemented | Fresh starter kit; no domain code yet |
+| 1 | Code in this repo | What is implemented | Current verified status in handoff/progress; original starter snapshot below is historical |
 | 2 | Figma file | Visual design | Mockups are not working backends |
 | 3 | Technical proposal (`docs/references/Proposed_QC_City_Hall_Solution.pdf`) | Intended workflows, requirements | **Draft 1.0, not approved by QC Hall** |
 | 4 | Figwright MCP | Un-documented Figma frames | Requires plugin open in Figma Desktop |
@@ -35,7 +35,7 @@ Quezon City Hall pays monthly Meralco electricity bills for its buildings. The Q
 
 The proposal labels capabilities "Existing" because they exist in the **original capstone system** — a different codebase at `~/Documents/capstone-dss-clone` (external reference only, not part of this project; its companion "Document 1: Capstone System Documentation" is not in this repo).
 
-**This repo (`capstone-qc-beneficiary`) contains none of those features.** It is a fresh `laravel/react-starter-kit`. Therefore:
+**At the original 2026-11-13 baseline this repo contained none of those domain features.** It started as `laravel/react-starter-kit`; the current implementation is now recorded in handoff/progress and verified code. Therefore:
 
 - "Existing and verified" in our docs means *verified in this repo*.
 - Capstone-era capabilities are labeled **"Existing in capstone, not ported"** until re-implemented and tested here.

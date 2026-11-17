@@ -46,10 +46,13 @@ function SheetContent({
   className,
   children,
   side = "right",
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  const opener = React.useRef<HTMLElement | null>(null)
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -68,6 +71,19 @@ function SheetContent({
           className
         )}
         {...props}
+        onOpenAutoFocus={(event) => {
+          opener.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null
+          onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+          if (!event.defaultPrevented && opener.current?.isConnected) {
+            event.preventDefault()
+            opener.current.focus()
+          }
+        }}
       >
         {children}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

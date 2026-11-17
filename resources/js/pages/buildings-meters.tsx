@@ -227,15 +227,21 @@ export default function BuildingsMeters() {
                 )}
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                        <Label
+                            htmlFor="registry-building"
+                            className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                        >
                             {isFacilities ? 'Assigned building' : 'Building'}
-                        </span>
+                        </Label>
                         <Select
                             value={selectedBuildingCode ?? 'all'}
                             onValueChange={filterBuilding}
                             disabled={buildings.length === 0}
                         >
-                            <SelectTrigger className="h-10 w-[185px] rounded-[9px] border-input bg-card text-[13px] font-bold text-[#1c2b40]">
+                            <SelectTrigger
+                                id="registry-building"
+                                className="h-10 w-[185px] rounded-[9px] border-input bg-card text-[13px] font-bold text-[#1c2b40]"
+                            >
                                 <SelectValue placeholder="All buildings" />
                             </SelectTrigger>
                             <SelectContent>
@@ -255,10 +261,14 @@ export default function BuildingsMeters() {
                     </div>
                     {!isFacilities && (
                         <div className="flex flex-col gap-1.5">
-                            <span className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                            <Label
+                                htmlFor="registry-period"
+                                className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                            >
                                 Latest verified period
-                            </span>
+                            </Label>
                             <Input
+                                id="registry-period"
                                 readOnly
                                 value={
                                     latestVerifiedPeriod ?? 'No verified record'
@@ -299,7 +309,7 @@ export default function BuildingsMeters() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        <Table aria-label="Building and meter registry">
                             <TableHeader>
                                 <TableRow className="border-0 hover:bg-transparent">
                                     <TableHead className="h-10 rounded-l-[6px] bg-[#eff4fb] px-3 text-[11px] font-semibold text-primary">
@@ -513,6 +523,12 @@ export default function BuildingsMeters() {
                             <Label htmlFor="building-name">Name</Label>
                             <Input
                                 id="building-name"
+                                aria-invalid={!!buildingForm.errors.name}
+                                aria-describedby={
+                                    buildingForm.errors.name
+                                        ? 'building-name-error'
+                                        : undefined
+                                }
                                 value={buildingForm.data.name}
                                 onChange={(event) =>
                                     buildingForm.setData(
@@ -521,7 +537,11 @@ export default function BuildingsMeters() {
                                     )
                                 }
                             />
-                            <InputError message={buildingForm.errors.name} />
+                            <InputError
+                                id="building-name-error"
+                                role="alert"
+                                message={buildingForm.errors.name}
+                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="building-code">
@@ -529,6 +549,12 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="building-code"
+                                aria-invalid={!!buildingForm.errors.code}
+                                aria-describedby={
+                                    buildingForm.errors.code
+                                        ? 'building-code-error'
+                                        : undefined
+                                }
                                 value={buildingForm.data.code}
                                 onChange={(event) =>
                                     buildingForm.setData(
@@ -537,7 +563,11 @@ export default function BuildingsMeters() {
                                     )
                                 }
                             />
-                            <InputError message={buildingForm.errors.code} />
+                            <InputError
+                                id="building-code-error"
+                                role="alert"
+                                message={buildingForm.errors.code}
+                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="building-floor-area">
@@ -545,6 +575,14 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="building-floor-area"
+                                aria-invalid={
+                                    !!buildingForm.errors.floor_area_m2
+                                }
+                                aria-describedby={
+                                    buildingForm.errors.floor_area_m2
+                                        ? 'building-floor-area-error'
+                                        : undefined
+                                }
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -557,6 +595,8 @@ export default function BuildingsMeters() {
                                 }
                             />
                             <InputError
+                                id="building-floor-area-error"
+                                role="alert"
                                 message={buildingForm.errors.floor_area_m2}
                             />
                         </div>
@@ -566,6 +606,14 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="building-operating-hours"
+                                aria-invalid={
+                                    !!buildingForm.errors.operating_hours
+                                }
+                                aria-describedby={
+                                    buildingForm.errors.operating_hours
+                                        ? 'building-operating-hours-error'
+                                        : undefined
+                                }
                                 value={buildingForm.data.operating_hours}
                                 onChange={(event) =>
                                     buildingForm.setData(
@@ -575,6 +623,8 @@ export default function BuildingsMeters() {
                                 }
                             />
                             <InputError
+                                id="building-operating-hours-error"
+                                role="alert"
                                 message={buildingForm.errors.operating_hours}
                             />
                         </div>
@@ -584,6 +634,12 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="building-notes"
+                                aria-invalid={!!buildingForm.errors.notes}
+                                aria-describedby={
+                                    buildingForm.errors.notes
+                                        ? 'building-notes-error'
+                                        : undefined
+                                }
                                 value={buildingForm.data.notes}
                                 onChange={(event) =>
                                     buildingForm.setData(
@@ -592,7 +648,11 @@ export default function BuildingsMeters() {
                                     )
                                 }
                             />
-                            <InputError message={buildingForm.errors.notes} />
+                            <InputError
+                                id="building-notes-error"
+                                role="alert"
+                                message={buildingForm.errors.notes}
+                            />
                         </div>
                     </form>
                     <DialogFooter>
@@ -646,7 +706,17 @@ export default function BuildingsMeters() {
                                     meterForm.setData('building_id', value)
                                 }
                             >
-                                <SelectTrigger id="meter-building">
+                                <SelectTrigger
+                                    id="meter-building"
+                                    aria-invalid={
+                                        !!meterForm.errors.building_id
+                                    }
+                                    aria-describedby={
+                                        meterForm.errors.building_id
+                                            ? 'meter-building-error'
+                                            : undefined
+                                    }
+                                >
                                     <SelectValue placeholder="Select a building" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -661,6 +731,8 @@ export default function BuildingsMeters() {
                                 </SelectContent>
                             </Select>
                             <InputError
+                                id="meter-building-error"
+                                role="alert"
                                 message={meterForm.errors.building_id}
                             />
                         </div>
@@ -672,6 +744,14 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="meter-account-ref"
+                                aria-invalid={
+                                    !!meterForm.errors.meralco_account_ref
+                                }
+                                aria-describedby={
+                                    meterForm.errors.meralco_account_ref
+                                        ? 'meter-account-error'
+                                        : undefined
+                                }
                                 value={meterForm.data.meralco_account_ref}
                                 onChange={(event) =>
                                     meterForm.setData(
@@ -686,6 +766,8 @@ export default function BuildingsMeters() {
                                 </p>
                             )}
                             <InputError
+                                id="meter-account-error"
+                                role="alert"
                                 message={meterForm.errors.meralco_account_ref}
                             />
                         </div>
@@ -695,6 +777,12 @@ export default function BuildingsMeters() {
                             </Label>
                             <Input
                                 id="meter-tariff-class"
+                                aria-invalid={!!meterForm.errors.tariff_class}
+                                aria-describedby={
+                                    meterForm.errors.tariff_class
+                                        ? 'meter-tariff-error'
+                                        : undefined
+                                }
                                 value={meterForm.data.tariff_class}
                                 onChange={(event) =>
                                     meterForm.setData(
@@ -704,6 +792,8 @@ export default function BuildingsMeters() {
                                 }
                             />
                             <InputError
+                                id="meter-tariff-error"
+                                role="alert"
                                 message={meterForm.errors.tariff_class}
                             />
                         </div>
@@ -715,7 +805,15 @@ export default function BuildingsMeters() {
                                     meterForm.setData('status', value)
                                 }
                             >
-                                <SelectTrigger id="meter-status">
+                                <SelectTrigger
+                                    id="meter-status"
+                                    aria-invalid={!!meterForm.errors.status}
+                                    aria-describedby={
+                                        meterForm.errors.status
+                                            ? 'meter-status-error'
+                                            : undefined
+                                    }
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -727,7 +825,11 @@ export default function BuildingsMeters() {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <InputError message={meterForm.errors.status} />
+                            <InputError
+                                id="meter-status-error"
+                                role="alert"
+                                message={meterForm.errors.status}
+                            />
                         </div>
                     </form>
                     <DialogFooter>
