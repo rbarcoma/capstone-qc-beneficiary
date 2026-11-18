@@ -1,8 +1,29 @@
 # DATABASE_DESIGN.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-16
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-18
 
 ## 1. Actual schema (verified in this repo, updated 2026-11-16)
+
+**R1 current addition (2026-11-18):** migration `2026_11_18_000015_create_billing_evidence_tables.php` is additive/reversible and applied to local development after pre/post hashes/columns matched across52 pre-existing tables (17 existing monthly billing records retained exactly). All4 new tables remain empty; no automatic account/service mapping or confidential/synthetic billing import. Earlier M16 schema-only paragraphs below are dated checkpoints, not a statement that later CRUD/migration000014 is absent.
+
+| R1 table | Contract |
+| --- | --- |
+| `utility_accounts` | Provider + unique provider/account reference; private customer identity, independent of legacy meter references |
+| `utility_services` | Account FK, unique existing-meter FK and service reference, optional physical-meter reference, explicit mapping reference; immutable associations, restrict-on-delete retained FKs |
+| `billing_evidence` | Record/service FKs, exact monthly-record version/source hash, sequential version per record, actual dates, origin, private document/hash/pages, nullable import/export/renewable/own-use kWh, signed E/X/O/A/C/B/T decimal amounts, author/reviewer historical IDs, draft/verified state/time/content hash |
+| `billing_evidence_components` | Evidence FK, unique position, optional parent position/subtotal marker, category/private label, basis unit, decimal quantity/printed rate/signed amount, source page; append-only evidence |
+
+Money is signed DECIMAL(20,2), energy DECIMAL(15,3), component quantity DECIMAL(20,6), printed rate DECIMAL(20,8). Decimal casts return strings. No existing `cost_php` meaning, record, meter, inventory or verification column is rewritten. New author/verifier IDs intentionally have no user FK, preserving historical independence evidence and existing account-deletion semantics. FKs to billing/domain evidence restrict deletion; `down()` removes only the4 new tables. Actual MySQL up/down/reapply test preserves existing rows/columns/references. Internal author/verify service and read-only history contract: ML/DSS §5.8. Public evidence/mapping mutation routes and future tariff storage remain separate scope.
+
+**Full-DSS addition (2026-11-18):** migration `2026_11_18_000016_add_dss_review_and_subjects.php` is additive and applied to local development after users/buildings/meters/monthly records/forecasts were confirmed unchanged (6/4/3/17/2 retained; `recommendations` empty). It stores reviewable tariff/rule/catalogue/R5-review versions and gives recommendations a subject discriminator. No runtime policy is activated: `config/recommendations.php` `policy_fingerprint` remains null and the new tables start empty.
+
+| DSS table | Contract |
+| --- | --- |
+| `dss_configurations` | Building FK (restrict on delete), `kind` tariff/rule/catalogue/review, `subject_key`, per-subject `version`, `state_version`, validated `payload` json, `source_snapshot` json, 64-char `scope_hash`/`content_hash`, nullable first-of-month `valid_from`/`valid_to`, status draft/submitted/approved/rejected/revoked, author/reviewer IDs, `approval_reference`, nullable `approved_hash`, `source_confirmation` json; unique `(building_id, kind, subject_key, version)` |
+| `dss_configuration_events` | Configuration FK (restrict on delete), actor ID, `state_version`, event name, reference text, immutable transition `snapshot` json, timestamp; unique `(dss_configuration_id, state_version)` — append-only ledger |
+| `recommendations` (altered) | Adds `subject_key` (default `building`; `meter:<id>` / `catalogue:R5-0x`), nullable `subject_snapshot` json, and replaces the identity unique index with `(forecast_id, rule_code, policy_fingerprint, subject_key)` |
+
+The replacement unique index is created **before** the original `recommendation_source_policy_unique` is dropped because InnoDB uses the leading `forecast_id` index for its foreign key; reversing that order fails with error 1553. `down()` drops the new index/columns and recreates the original index first, but refuses a lossy rollback when any non-building subject exists: `Per-subject recommendation history must be retained; this rollback cannot collapse it.` Author/reviewer IDs intentionally have no user FK, matching the existing historical-evidence semantics. Event rows and audit rows (`dss.configuration.*`, `runtime_activated: false`) are written in the same transaction as the state change; an audit failure rolls the transition back. Actual MySQL up/down/reapply is verified by `DssReviewMigrationTest`. Workflow contract: ML/DSS §5.9.
 
 Laravel defaults and domain migrations through the approved M16 schema-only checkpoint are implemented:
 
@@ -24,7 +45,7 @@ Laravel defaults and domain migrations through the approved M16 schema-only chec
 | `notification_receipts` | `2026_11_15_000012_create_notification_receipts_table.php` | Personal read timestamp, unique user/source-identity key; user FK cascades on account removal. Current notices derive from live sources, not a stored delivery archive |
 | `user_module_restrictions`, user metadata + audit subject ID | `2026_11_16_000013_add_user_management_foundation.php` | Unique user/module restriction storage, cascade-on-delete user FK; existing users active/default version1; nullable indexed historical audit subject ID has no FK so deletion retains its value |
 
-Migrations through `000013` are additive and applied. P6 forecast persistence, P7 independent decision/action foundations and P8 minimal action lifecycle/history, scoped Reports and current-source Notifications are **Existing and verified**. M16 adds a verified schema/model foundation only. No production recommendation generator exists; default-null policy configuration blocks new decisions, while previously accepted actions may retain factual follow-up. Registry rows with billing history cannot be removed (meter lock guards concurrent intake). No real/synthetic billing history is seeded into development.
+Migrations through `000016` are additive and applied. P6 forecast persistence, P7 independent decision/action foundations and P8 minimal action lifecycle/history, scoped Reports and current-source Notifications are **Existing and verified**. M16 adds a verified schema/model foundation only. No production recommendation generator exists; default-null policy configuration blocks new decisions, while previously accepted actions may retain factual follow-up. Registry rows with billing history cannot be removed (meter lock guards concurrent intake). No real/synthetic billing history is seeded into development.
 
 **M16 foundation boundary (2026-11-16):** `users.is_active` defaults true, `version`/`access_version` default1, `deactivated_at` nullable. These fields are guarded against mass assignment. `User::moduleRestrictions()` / `UserModuleRestriction::user()` store restrictions only; absent rows inherit the current role baseline. No grant table, module catalogue/validation, request authorization, login blocking, session revocation, CRUD endpoints or password-setup fields added. Fortify and existing account-deletion policies are unchanged. `down()` removes only the new schema; rolling it back discards new restriction/metadata values, not legacy account/assignment/audit rows.
 

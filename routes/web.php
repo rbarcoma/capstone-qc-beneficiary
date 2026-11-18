@@ -3,10 +3,12 @@
 use App\Http\Controllers\ActionTrackerController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BillingEvidenceController;
 use App\Http\Controllers\BuildingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DataManagementController;
 use App\Http\Controllers\DecisionSupportController;
+use App\Http\Controllers\DssConfigurationController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PreprocessingController;
@@ -33,6 +35,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('actions/{action}', [ActionTrackerController::class, 'update'])->middleware('role:energy_manager')->name('actions.update');
     Route::get('decision-support', [DecisionSupportController::class, 'index'])->name('decision-support');
     Route::post('recommendations/{recommendation}/decide', [DecisionSupportController::class, 'decide'])->middleware('role:energy_manager')->name('recommendations.decide');
+    Route::get('decision-support/configuration', [DssConfigurationController::class, 'index'])->middleware('role:admin,energy_manager,budget_officer')->name('dss.configuration');
+    Route::post('decision-support/configuration/{building}', [DssConfigurationController::class, 'store'])->middleware(['role:admin,energy_manager', 'throttle:20,1'])->name('dss.configuration.store');
+    Route::post('decision-support/reviews/{configuration}', [DssConfigurationController::class, 'transition'])->middleware(['role:admin,energy_manager,budget_officer', 'throttle:30,1'])->name('dss.configuration.transition');
     Route::get('solar-scenarios', [SolarScenarioController::class, 'index'])->name('solar-scenarios');
     Route::post('solar-scenarios/calculate', [SolarScenarioController::class, 'calculate'])->middleware('throttle:30,1')->name('solar-scenarios.calculate');
     Route::get('forecasting', [ForecastController::class, 'index'])->name('forecasting');
@@ -48,6 +53,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('preprocessing/weather', [PreprocessingController::class, 'syncWeather'])->middleware('throttle:6,1')->name('preprocessing.weather');
         Route::get('datasets/{dataset}/lineage', [PreprocessingController::class, 'lineage'])->name('datasets.lineage');
         Route::get('verification-queue', [VerificationController::class, 'index'])->name('verification-queue');
+        Route::get('billing-evidence', [BillingEvidenceController::class, 'index'])->name('billing-evidence.index');
+        Route::post('billing-evidence/records/{record}', [BillingEvidenceController::class, 'store'])->middleware('throttle:20,1')->name('billing-evidence.store');
+        Route::post('billing-evidence/{evidence}/verify', [BillingEvidenceController::class, 'verify'])->middleware('throttle:20,1')->name('billing-evidence.verify');
+        Route::post('billing-evidence/services', [BillingEvidenceController::class, 'mapService'])->middleware(['role:admin', 'throttle:10,1'])->name('billing-evidence.services');
         Route::post('monthly-records/{record}/verify', [VerificationController::class, 'verify'])->name('monthly-records.verify');
         Route::patch('monthly-records/{record}/correct', [VerificationController::class, 'correct'])->name('monthly-records.correct');
         Route::get('monthly-records/{record}/history', [VerificationController::class, 'history'])->name('monthly-records.history');

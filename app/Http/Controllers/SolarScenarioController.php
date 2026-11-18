@@ -23,6 +23,10 @@ class SolarScenarioController extends Controller
         $building = $buildings->keyBy('code')->get($code ?? '');
         $view = $building ? $reader->read($building, $user) : null;
         $result = $request->session()->get('scenarioResult');
+        $canViewCost = ForecastScenario::canViewInstallationCost($user);
+        if (! $canViewCost && $result !== null) {
+            unset($result['installation']);
+        }
         // Never redisplay a flash result against a changed/superseded source run.
         if ($result && ($view['current']['id'] ?? null) !== $result['forecastId']) {
             $result = null;
@@ -30,7 +34,7 @@ class SolarScenarioController extends Controller
 
         return Inertia::render('solar-scenarios', ['buildings' => $buildings->map(fn (Building $item) => $item->only(['id', 'name', 'code'])),
             'selectedBuildingCode' => $code, 'latestVerifiedPeriod' => $view['latestVerifiedPeriod'] ?? null,
-            'currentForecast' => $view['current'] ?? null, 'scenarioResult' => $result]);
+            'currentForecast' => $view['current'] ?? null, 'canViewInstallationCost' => $canViewCost, 'scenarioResult' => $result]);
     }
 
     public function calculate(Request $request, ForecastScenario $scenarios): RedirectResponse
@@ -39,7 +43,7 @@ class SolarScenarioController extends Controller
         /** @var User $user */
         $user = $request->user();
         $building = Building::whereKey($request->integer('building_id'))->firstOrFail();
-        $result = $scenarios->calculate($building, $user, $request->only(['expected_forecast_id', 'reduction_percent', 'capacity_kwp', 'performance_ratio', 'tariff_php_per_kwh', 'target_month', 'solar_irradiance']));
+        $result = $scenarios->calculate($building, $user, $request->only(['expected_forecast_id', 'reduction_percent', 'capacity_kwp', 'performance_ratio', 'installation', 'tariff_php_per_kwh', 'target_month', 'solar_irradiance']));
 
         return back()->with('scenarioResult', $result);
     }

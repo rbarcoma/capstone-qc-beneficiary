@@ -28,6 +28,10 @@ type ScenarioResult = {
     assumedDifferenceKwh: number;
     costDifferencePhp: null;
     solarState: string;
+    installation?: InstallationInputs & {
+        capacityKwp: string;
+        totalPhp: string;
+    };
     solar: {
         capacityKwp: number;
         performanceRatio: number;
@@ -41,18 +45,28 @@ type ScenarioResult = {
     } | null;
 };
 
+const documentation = {
+    reference: 'Source reference',
+    date: 'Source date',
+    inclusions: 'Included costs',
+    exclusions: 'Excluded costs',
+} as const;
+type InstallationInputs = Record<'rate' | keyof typeof documentation, string>;
+
 export default function SolarScenarios() {
     const {
         buildings,
         selectedBuildingCode,
         latestVerifiedPeriod,
         currentForecast,
+        canViewInstallationCost,
         scenarioResult: result,
     } = usePage().props as unknown as {
         buildings: EnergyBuilding[];
         selectedBuildingCode: string | null;
         latestVerifiedPeriod: string | null;
         currentForecast: ForecastRun | null;
+        canViewInstallationCost: boolean;
         scenarioResult: ScenarioResult | null;
     };
     const selected = buildings.find(
@@ -65,6 +79,13 @@ export default function SolarScenarios() {
         reduction_percent: '',
         capacity_kwp: '',
         performance_ratio: '',
+        installation: {
+            rate: '',
+            reference: '',
+            date: '',
+            inclusions: '',
+            exclusions: '',
+        } satisfies InstallationInputs,
     });
     return (
         <>
@@ -128,8 +149,12 @@ export default function SolarScenarios() {
                     className="grid gap-4 lg:grid-cols-[minmax(0,1.84fr)_minmax(0,1fr)]"
                     onSubmit={(event) => {
                         event.preventDefault();
-                        form.transform((values) => ({
+                        form.transform(({ installation, ...values }) => ({
                             ...values,
+                            ...(canViewInstallationCost &&
+                            installation.rate !== ''
+                                ? { installation }
+                                : {}),
                             building_id: selected?.id,
                             expected_forecast_id: currentForecast?.id,
                         }));
@@ -300,6 +325,111 @@ export default function SolarScenarios() {
                                 roof/structural suitability or performance ratio
                                 is inferred.
                             </p>
+                            {canViewInstallationCost && (
+                                <fieldset className="space-y-3 rounded-[9px] border p-3">
+                                    <legend className="px-1 font-semibold">
+                                        Installation estimate (optional)
+                                    </legend>
+                                    <Label htmlFor="installation-rate">
+                                        Installed cost per kWp (PHP/kWp)
+                                    </Label>
+                                    <Input
+                                        id="installation-rate"
+                                        type="text"
+                                        inputMode="decimal"
+                                        maxLength={21}
+                                        value={form.data.installation.rate}
+                                        onChange={(event) =>
+                                            form.setData('installation', {
+                                                ...form.data.installation,
+                                                rate: event.target.value,
+                                            })
+                                        }
+                                    />
+                                    <p className="text-muted-foreground">
+                                        Leave blank for energy screening only.
+                                    </p>
+                                    {form.data.installation.rate !== '' &&
+                                        (
+                                            Object.keys(
+                                                documentation,
+                                            ) as (keyof typeof documentation)[]
+                                        ).map((key) => (
+                                            <div
+                                                className="space-y-1.5"
+                                                key={key}
+                                            >
+                                                <Label
+                                                    htmlFor={`installation-${key}`}
+                                                >
+                                                    {documentation[key]}
+                                                </Label>
+                                                <Input
+                                                    id={`installation-${key}`}
+                                                    type={
+                                                        key === 'date'
+                                                            ? 'date'
+                                                            : 'text'
+                                                    }
+                                                    maxLength={2000}
+                                                    required
+                                                    value={
+                                                        form.data.installation[
+                                                            key
+                                                        ]
+                                                    }
+                                                    onChange={(event) =>
+                                                        form.setData(
+                                                            'installation',
+                                                            {
+                                                                ...form.data
+                                                                    .installation,
+                                                                [key]: event
+                                                                    .target
+                                                                    .value,
+                                                            },
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        ))}
+                                </fieldset>
+                            )}
+                            {canViewInstallationCost &&
+                                result?.installation && (
+                                    <section
+                                        aria-labelledby="installation-result"
+                                        className="space-y-2 rounded-[9px] bg-secondary p-3 [overflow-wrap:anywhere]"
+                                    >
+                                        <h3
+                                            id="installation-result"
+                                            className="font-semibold"
+                                        >
+                                            Last installation estimate
+                                        </h3>
+                                        <p className="text-lg font-semibold">
+                                            ₱{result.installation.totalPhp}
+                                        </p>
+                                        <p>
+                                            {result.installation.capacityKwp}{' '}
+                                            kWp × ₱{result.installation.rate}
+                                            /kWp
+                                        </p>
+                                        <p>
+                                            Source:{' '}
+                                            {result.installation.reference} ·{' '}
+                                            {result.installation.date}
+                                        </p>
+                                        <p>
+                                            Includes:{' '}
+                                            {result.installation.inclusions}
+                                        </p>
+                                        <p>
+                                            Excludes:{' '}
+                                            {result.installation.exclusions}
+                                        </p>
+                                    </section>
+                                )}
                             {result?.solar ? (
                                 <div className="space-y-2 rounded-lg border p-3">
                                     <p>

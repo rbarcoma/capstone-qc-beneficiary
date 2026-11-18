@@ -65,7 +65,8 @@ class ForecastResultValidator
             }
             $this->same($metrics['mae'] ?? null, array_sum(array_map(abs(...), $errors)) / count($errors));
             $this->same($metrics['rmse'] ?? null, sqrt($squared / count($errors)));
-            if ($variance === 0.0) {
+            // array_sum may return integer 0 for constant integer-valued targets.
+            if ($variance == 0.0) {
                 if (! array_key_exists('r2', $metrics) || $metrics['r2'] !== null) {
                     $this->fail();
                 }

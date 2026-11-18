@@ -37,12 +37,14 @@ class SecurityBoundaryTest extends TestCase
             ['POST', '/reports/1/summary'],
             ['POST', '/users'], ['PATCH', '/users/1'], ['PATCH', '/users/1/status'],
             ['POST', '/users/1/temporary-password'], ['PUT', '/account/password-setup'],
+            ['POST', '/billing-evidence/services'], ['POST', '/billing-evidence/records/1'], ['POST', '/billing-evidence/1/verify'],
+            ['POST', '/decision-support/configuration/1'], ['POST', '/decision-support/reviews/1'],
         ] as [$method, $uri]) {
             $this->json($method, $uri)->assertStatus(419);
             $this->json($method, $uri, ['_token' => 'forged'])->assertStatus(419);
         }
 
-        foreach (['buildings', 'meters', 'monthly_records', 'datasets', 'forecasts', 'recommendations', 'actions', 'notification_receipts', 'user_module_restrictions', 'audit_logs', 'jobs'] as $table) {
+        foreach (['buildings', 'meters', 'monthly_records', 'datasets', 'forecasts', 'recommendations', 'actions', 'notification_receipts', 'user_module_restrictions', 'audit_logs', 'jobs', 'dss_configurations', 'dss_configuration_events', 'utility_accounts', 'utility_services', 'billing_evidence'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
         // Positive control: a genuine token reaches the intended authorization

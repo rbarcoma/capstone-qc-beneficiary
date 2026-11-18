@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Building;
 use App\Models\Forecast;
 use App\Models\User;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -13,6 +16,11 @@ use Illuminate\Validation\ValidationException;
 
 class ForecastScenario
 {
+    public static function canViewInstallationCost(User $user): bool
+    {
+        return $user->hasRole(UserRole::Admin, UserRole::EnergyManager, UserRole::BudgetOfficer, UserRole::Viewer);
+    }
+
     /** @param array<string, mixed> $input
      * @return array<string, mixed>
      */
@@ -31,14 +39,22 @@ class ForecastScenario
             'tariff_php_per_kwh' => ['prohibited'], 'target_month' => ['prohibited'], 'solar_irradiance' => ['prohibited'],
         ])->validate();
 
-        return DB::transaction(function () use ($building, $user, $data) {
-            $view = app(ForecastRead::class)->read($building, $user);
+        return DB::transaction(function () use ($building, $user, $data, $input) {
+            app(BuildingDataset::class)->inspectLocked($building);
+            $actor = User::lockForUpdate()->findOrFail($user->id);
+            abort_unless($actor->canAccessModule('solar_scenarios') && $actor->hasBuildingAccess($building), 403);
+            $installation = null;
+            if (array_key_exists('installation', $input)) {
+                abort_unless(self::canViewInstallationCost($actor), 403);
+                $installation = $this->installationEstimate($input);
+            }
+            $view = app(ForecastRead::class)->read($building, $actor);
             $current = $view['current'];
             if (! $current || (int) $data['expected_forecast_id'] !== $current['id']) {
                 throw ValidationException::withMessages(['scenario' => 'A current issued forecast is required. Refresh the reviewed source run first.']);
             }
             $forecast = Forecast::with('dataset')->findOrFail($current['id']);
-            Gate::forUser($user)->authorize('view', $forecast);
+            Gate::forUser($actor)->authorize('view', $forecast);
             $last = $forecast->dataset->records()->orderByDesc('month')->firstOrFail();
             $source = $last->weather_snapshot['observed'] ?? null;
             $dailySolar = $source['weather_values']['ALLSKY_SFC_SW_DWN'] ?? null;
@@ -50,11 +66,40 @@ class ForecastScenario
             $result += ['forecastId' => $forecast->id, 'buildingId' => $building->id, 'targetMonth' => $forecast->target_month->toDateString(),
                 'climateProxyMonth' => $forecast->training_end_month->toDateString(), 'modelVersion' => $forecast->model_version,
                 'solarSource' => $hasSolar ? ['source' => $source['source'], 'latitude' => $source['latitude'], 'longitude' => $source['longitude'], 'units' => $source['units']['ALLSKY_SFC_SW_DWN'], 'contentHash' => $source['content_hash']] : null];
-            AuditLog::create(['actor_id' => $user->id, 'forecast_id' => $forecast->id, 'event' => 'scenario.calculated',
+            if ($installation !== null) {
+                $result['installation'] = $installation;
+                $data['installation'] = $installation;
+            }
+            AuditLog::create(['actor_id' => $actor->id, 'forecast_id' => $forecast->id, 'event' => 'scenario.calculated',
                 'after' => ['arithmetic_only' => true, 'assumptions' => $data]]);
 
             return $result;
         });
+    }
+
+    /** @param array<string, mixed> $input
+     * @return array<string, string>
+     */
+    private function installationEstimate(array $input): array
+    {
+        $data = Validator::make($input, [
+            'capacity_kwp' => ['required', 'regex:/^\d{1,7}(\.\d{1,8})?$/D'],
+            'installation' => ['required', 'array:rate,reference,date,inclusions,exclusions'],
+            'installation.rate' => ['required', 'regex:/^\d{1,12}(\.\d{1,8})?$/D'],
+            'installation.reference' => ['required', 'string', 'max:2000'],
+            'installation.date' => ['required', 'date_format:Y-m-d'],
+            'installation.inclusions' => ['required', 'string', 'max:2000'],
+            'installation.exclusions' => ['required', 'string', 'max:2000'],
+        ], [], [
+            'installation.rate' => 'installation rate (PHP/kWp)', 'installation.reference' => 'source reference',
+            'installation.date' => 'source date', 'installation.inclusions' => 'included costs', 'installation.exclusions' => 'excluded costs',
+        ])->validate();
+        $capacity = (string) $data['capacity_kwp'];
+        $assumptions = $data['installation'];
+        $assumptions['rate'] = (string) $assumptions['rate'];
+
+        return [...$assumptions, 'capacityKwp' => $capacity, 'totalPhp' => (string) BigDecimal::of($capacity)
+            ->multipliedBy($assumptions['rate'])->toScale(2, RoundingMode::HalfUp)];
     }
 
     /** @return array<string, mixed> */

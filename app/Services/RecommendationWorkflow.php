@@ -40,7 +40,7 @@ class RecommendationWorkflow
                 $this->fail($reason);
             }
             $before = $current->toArray();
-            $snapshot = $current->only(['forecast_id', 'rule_code', 'policy_fingerprint', 'source_fingerprint', 'title', 'message', 'evidence', 'priority', 'evaluation_status']);
+            $snapshot = $current->only(['forecast_id', 'rule_code', 'subject_key', 'subject_snapshot', 'policy_fingerprint', 'source_fingerprint', 'title', 'message', 'evidence', 'priority', 'evaluation_status']);
             $action = null;
             if ($data['decision'] === 'accepted') {
                 $owner = User::query()->lockForUpdate()->find((int) $data['owner_id']);

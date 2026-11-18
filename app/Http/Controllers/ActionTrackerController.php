@@ -43,6 +43,7 @@ class ActionTrackerController extends Controller
                     'ownerName' => $action->owner_id === null ? 'Former user' : $action->owner->name, 'dueDate' => $action->due_date->toDateString(),
                     'completedAt' => $action->completed_at?->toIso8601String(),
                     'ruleCode' => $action->recommendation->rule_code, 'recommendationId' => $action->recommendation_id,
+                    'subjectKey' => $action->recommendation->subject_key,
                     'forecastId' => $action->recommendation->forecast_id, 'targetMonth' => $action->recommendation->forecast->target_month->toDateString(),
                     'buildingName' => $action->recommendation->forecast->building->name,
                     'canUpdate' => $user->can('update', $action) && $action->status === 'open' && $action->completed_at === null && $action->has_acceptance,

@@ -7,7 +7,7 @@ use App\Models\Building;
 use App\Models\Recommendation;
 use App\Models\RecommendationDecision;
 use App\Models\User;
-use App\Services\ForecastRead;
+use App\Services\DecisionSupportInformation;
 use App\Services\RecommendationReadiness;
 use App\Services\RecommendationWorkflow;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +17,7 @@ use Inertia\Response;
 
 class DecisionSupportController extends Controller
 {
-    public function index(Request $request, ForecastRead $forecasts, RecommendationReadiness $readiness): Response
+    public function index(Request $request, DecisionSupportInformation $information, RecommendationReadiness $readiness): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -26,7 +26,8 @@ class DecisionSupportController extends Controller
         abort_unless($code === null || (is_string($code) && $buildings->contains('code', $code)), 404);
         $building = $buildings->keyBy('code')->get($code ?? '');
         $buildingId = $building === null ? 0 : $building->id;
-        $data = $building ? $forecasts->read($building, $user) : null;
+        $information = $building ? $information->read($building, $user) : null;
+        $data = $information['forecast'] ?? null;
         $query = Recommendation::query()->whereHas('forecast', fn ($query) => $query->where('building_id', $buildingId))
             ->when($user->hasRole(UserRole::FacilitiesPersonnel), fn ($query) => $query->where('contains_cost_data', false)->where('rule_code', '!=', 'R1'));
         $current = (clone $query)->where('forecast_id', $data['current']['id'] ?? 0)
@@ -38,6 +39,7 @@ class DecisionSupportController extends Controller
             $reason = $readiness->reason($item, $data['current']['id'] ?? null);
 
             return ['id' => $item->id, 'version' => $item->version, 'ruleCode' => $item->rule_code, 'title' => $item->title,
+                'subjectKey' => $item->subject_key,
                 'targetMonth' => $item->forecast->target_month->toDateString(), 'forecastId' => $item->forecast_id,
                 'priority' => $sourceCurrent ? $item->priority : null, 'message' => $sourceCurrent ? $item->message : null,
                 'evidence' => $sourceCurrent ? $item->evidence : null, 'sourceCurrent' => $sourceCurrent,
@@ -53,11 +55,17 @@ class DecisionSupportController extends Controller
         return Inertia::render('decision-support', [
             'buildings' => $buildings->map(fn (Building $item) => $item->only(['id', 'code', 'name'])), 'selectedBuildingCode' => $code,
             'latestVerifiedPeriod' => $data['latestVerifiedPeriod'] ?? null, 'currentForecastId' => $data['current']['id'] ?? null,
+            'comparison' => $information['comparison'] ?? null, 'readiness' => $information['readiness'] ?? null,
+            'exploratoryHistory' => $information['exploratoryHistory'] ?? null,
+            'conservationCatalogue' => $information['conservationCatalogue'] ?? null,
+            'historicalRates' => $information['historicalRates'] ?? null,
             'policyAvailable' => $readiness->policyAvailable(), 'recommendations' => $recommendations, 'owners' => $owners,
             'counts' => ['evaluated' => $readiness->policyAvailable() ? (clone $current)->count() : 0,
                 'high' => $readiness->policyAvailable() ? (clone $current)->where('priority', 'high')->count() : 0,
                 'accepted' => $readiness->policyAvailable() ? (clone $current)->where('decision', 'accepted')->count() : 0],
             'today' => now('Asia/Manila')->toDateString(), 'operationResult' => $request->session()->get('decisionResult'),
+            'dssAccess' => ['configuration' => $user->hasRole(UserRole::Admin, UserRole::EnergyManager, UserRole::BudgetOfficer),
+                'billingEvidence' => $user->hasRole(UserRole::Admin, UserRole::EnergyManager) && $user->canAccessModule('verification_queue')],
         ]);
     }
 

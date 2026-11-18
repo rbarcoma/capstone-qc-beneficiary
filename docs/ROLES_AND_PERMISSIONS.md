@@ -1,6 +1,6 @@
 # ROLES_AND_PERMISSIONS.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-14
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-18
 **Current implementation (2026-11-14):** five roles + building assignments (P2), Admin-only registry management (P3), and P4 authorized CSV/manual intake, independent verification/correction/history are **Existing and verified**. Proposal status labels below describe their source, not implementation evidence for future modules.
 
 ## 1. Roles (proposal §6.1, Table 3)
@@ -36,6 +36,10 @@ Notes:
 - This matrix is **Proposed** and requires City Hall confirmation before locking in.
 
 ## 3. Enforcement plan (when P2 is implemented)
+
+**R1 bounded foundation verified (2026-11-18):** historical monetary/rate DTO only for fresh usable Admin/Energy Manager/Budget Officer/Viewer with DSS module + building access; Facilities receives null server-side, no account/service/document/line-label leakage. New internal evidence draft/verify service requires fresh Admin/EM + verification-module/building/record permission; exact latest draft/version and independent evidence author/reviewer, bill confirmation, verified source/current hash and exact reconciliation. It does not verify/change the monthly bill. Existing intake/verification permissions remain unchanged; the 2026-11-18 workspace below adds the authorized HTTP routes without a new role grant. Future tariff approval permissions are not inferred from cost-view access; ML/DSS §5.8.
+
+**Full-DSS configuration review verified (2026-11-18):** the `decision-support/configuration` index allows Admin, Energy Manager and Budget Officer (route `role:` middleware + DSS module). Drafting and submitting tariff/rule/catalogue/R5-review versions = Admin/EM only; Budget sees tariff subjects read-only, gets no draft action, and is denied rule/catalogue/review queries (403). **Approve/reject/revoke require a different Admin or Energy Manager** than the author (server-computed operations; self-review rejected). **Confirm tariff source is Budget Officer only**, once, on a submitted tariff authored by someone else, and binds the content hash; Budget cannot approve and Admin/EM approval of a tariff requires that confirmation. Every transition requires current state-version/content-hash/freshness/latest-version checks, is audited, and records `runtime_activated: false`; approval never activates policy. `billing-evidence` page = Admin/EM via the Verification module (Budget/Viewer/Facilities 403): evidence drafting/independent verification uses the existing fresh-actor, record/version, source-current and author≠verifier rules; **explicit service association is Admin only** and audited. Responses are private/no-store. Scoped denials are audited. No public intake, import, inferred mapping or new role grant.
 
 **P5–P7 checkpoint:** preprocessing/build/weather sync + operational dataset lineage and forecast issuance/reconciliation = Admin/Energy Manager, server role/policy gates; analytics/comparison/forecast/scenarios = authenticated roles with Facilities building scope and cost suppression. Decision Support = all authenticated view roles, Facilities assigned-building non-cost recommendations only (R1/cost-marked rows excluded). Accept/reject/defer = **Energy Manager only**, including persisted-role recheck; Admin cannot decide. Matching evaluated policy/current source/version required; default production policy unavailable. Acceptance requires owner with recommendation/building visibility and an explicit due date. Decision history/action creation/audit are atomic; scoped route-role denials audited. Standalone action lifecycle editing remains P8.
 

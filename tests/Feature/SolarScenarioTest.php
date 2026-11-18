@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\MonthlyRecord;
 use App\Models\User;
 use App\Services\ForecastIssuance;
@@ -52,6 +53,41 @@ class SolarScenarioTest extends TestCase
             $this->post('/solar-scenarios/calculate', ['building_id' => $f['building']->id, 'expected_forecast_id' => $run->id, 'reduction_percent' => 5])->assertSessionHasNoErrors();
         }
         $this->assertDatabaseCount('forecasts', 1);
+    }
+
+    public function test_documented_installation_estimate_uses_decimal_capacity_and_one_rate_and_is_audited(): void
+    {
+        $f = $this->forecastFixture();
+        $run = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
+        $base = ['building_id' => $f['building']->id, 'expected_forecast_id' => $run->id, 'reduction_percent' => 0, 'capacity_kwp' => '2.5', 'performance_ratio' => 0.8];
+        $assumptions = ['rate' => '100.002', 'reference' => 'Fictional test quotation', 'date' => '2026-11-01', 'inclusions' => 'Panels and labour', 'exclusions' => 'Roof reinforcement'];
+        foreach (['admin', 'energy_manager', 'budget_officer', 'viewer'] as $role) {
+            $this->actingAs(User::factory()->role($role)->create())->post('/solar-scenarios/calculate', [...$base, 'installation' => $assumptions])
+                ->assertSessionHasNoErrors()->assertSessionHas('scenarioResult.installation.totalPhp', '250.01')
+                ->assertSessionHas('scenarioResult.solar.generationKwh', 240);
+            $this->get('/solar-scenarios')->assertInertia(fn ($page) => $page->where('canViewInstallationCost', true)
+                ->where('scenarioResult.installation.reference', $assumptions['reference'])->where('scenarioResult.costDifferencePhp', null));
+        }
+        $audit = AuditLog::where('event', 'scenario.calculated')->latest('id')->firstOrFail();
+        $this->assertEquals([...$assumptions, 'capacityKwp' => '2.5', 'totalPhp' => '250.01'], $audit->after['assumptions']['installation']);
+        $this->post('/solar-scenarios/calculate', $base)->assertSessionHasNoErrors()->assertSessionMissing('scenarioResult.installation')->assertSessionHas('scenarioResult.solar.generationKwh', 240);
+    }
+
+    public function test_installation_details_must_be_complete_and_are_denied_to_facilities_on_write_and_read(): void
+    {
+        $f = $this->forecastFixture();
+        $run = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
+        $base = ['building_id' => $f['building']->id, 'expected_forecast_id' => $run->id, 'reduction_percent' => 0, 'capacity_kwp' => '2.5', 'performance_ratio' => 0.8];
+        $this->actingAs($f['user'])->post('/solar-scenarios/calculate', [...$base, 'installation' => ['rate' => '-1']])->assertSessionHasErrors([
+            'installation.rate', 'installation.reference', 'installation.date', 'installation.inclusions', 'installation.exclusions',
+        ]);
+        $this->post('/solar-scenarios/calculate', [...$base, 'capacity_kwp' => null, 'performance_ratio' => null, 'installation' => ['date' => '2026-02-30']])->assertSessionHasErrors(['capacity_kwp', 'installation.rate', 'installation.date']);
+        $facility = User::factory()->role('facilities_personnel')->create();
+        $facility->buildings()->attach($f['building']);
+        $this->actingAs($facility)->post('/solar-scenarios/calculate', [...$base, 'installation' => ['rate' => '1']])->assertForbidden();
+        $this->withSession(['scenarioResult' => ['forecastId' => $run->id, 'installation' => ['reference' => 'Private test source']]])
+            ->get('/solar-scenarios')->assertInertia(fn ($page) => $page->where('canViewInstallationCost', false)->missing('scenarioResult.installation'));
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'scenario.calculated']);
     }
 
     public function test_unauthorized_building_and_guests_cannot_calculate(): void

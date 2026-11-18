@@ -2,6 +2,7 @@ export type * from './auth';
 export type * from './action';
 export type * from './dashboard';
 export type * from './data-management';
+export type * from './decision-support';
 export type * from './energy';
 export type * from './forecast';
 export type * from './navigation';

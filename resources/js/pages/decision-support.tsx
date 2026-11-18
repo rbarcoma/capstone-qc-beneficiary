@@ -1,14 +1,19 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import ActionTrackerController from '@/actions/App/Http/Controllers/ActionTrackerController';
 import DecisionSupportController from '@/actions/App/Http/Controllers/DecisionSupportController';
 import SolarScenarioController from '@/actions/App/Http/Controllers/SolarScenarioController';
+import BillingEvidenceController from '@/actions/App/Http/Controllers/BillingEvidenceController';
+import DssConfigurationController from '@/actions/App/Http/Controllers/DssConfigurationController';
+import ConservationCatalogue from '@/components/conservation-catalogue';
+import DecisionSupportHistory from '@/components/decision-support-history';
+import DecisionSupportInformation from '@/components/decision-support-information';
+import HistoricalEffectiveRates from '@/components/historical-effective-rates';
 import {
     EnergyFilters,
     EnergyFooter,
     EnergyHeader,
-    EnergyMetric,
-    EnergyNotice,
 } from '@/components/energy-workspace';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -24,12 +29,20 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { EnergyBuilding } from '@/types';
+import type {
+    ConservationCatalogueData,
+    DecisionReadiness,
+    ExploratoryHistory,
+    EnergyBuilding,
+    ForecastComparison,
+    HistoricalRates,
+} from '@/types';
 
 type Recommendation = {
     id: number;
     version: number;
     ruleCode: string;
+    subjectKey: string;
     title: string;
     targetMonth: string;
     forecastId: number;
@@ -58,6 +71,44 @@ type Recommendation = {
     } | null;
 };
 type Owner = { id: number; name: string; role: string };
+
+// Evidence varies by rule. Preserve the supplied values and units, including zero.
+function EvidenceValues({ value }: { value: unknown }) {
+    if (value === null || value === undefined) return <>Unavailable</>;
+    if (typeof value === 'boolean') return <>{value ? 'Yes' : 'No'}</>;
+    if (Array.isArray(value))
+        return (
+            <ul className="list-disc pl-4">
+                {value.map((part, i) => (
+                    <li key={i}>
+                        <EvidenceValues value={part} />
+                    </li>
+                ))}
+            </ul>
+        );
+    if (typeof value === 'string' || typeof value === 'number')
+        return <>{value}</>;
+    if (typeof value !== 'object') return <>Unavailable</>;
+    return (
+        <dl className="space-y-1">
+            {Object.entries(value).map(([key, part]) => (
+                <div key={key} className="break-words">
+                    <dt className="font-semibold first-letter:uppercase">
+                        {key
+                            .replace(/([a-z])([A-Z])/g, '$1 $2')
+                            .replaceAll('_', ' ')
+                            .replace(/\bkwh\b/gi, 'kWh')
+                            .replace(/\bkw\b/gi, 'kW')
+                            .replace(/\bphp\b/gi, 'PHP')}
+                    </dt>
+                    <dd>
+                        <EvidenceValues value={part} />
+                    </dd>
+                </div>
+            ))}
+        </dl>
+    );
+}
 
 function RecommendationReview({
     item,
@@ -288,22 +339,31 @@ function RecommendationReview({
 }
 
 export default function DecisionSupport() {
+    const page = usePage();
     const {
         buildings,
         selectedBuildingCode,
         latestVerifiedPeriod,
-        currentForecastId,
+        comparison,
+        readiness,
+        exploratoryHistory,
+        conservationCatalogue,
+        historicalRates,
         policyAvailable,
         recommendations,
         owners,
-        counts,
         today,
         operationResult,
-    } = usePage().props as unknown as {
+        dssAccess,
+    } = page.props as unknown as {
         buildings: EnergyBuilding[];
         selectedBuildingCode: string | null;
         latestVerifiedPeriod: string | null;
-        currentForecastId: number | null;
+        comparison: ForecastComparison | null;
+        readiness: DecisionReadiness | null;
+        exploratoryHistory: ExploratoryHistory | null;
+        conservationCatalogue: ConservationCatalogueData | null;
+        historicalRates: HistoricalRates | null;
         policyAvailable: boolean;
         recommendations: {
             data: Recommendation[];
@@ -312,126 +372,151 @@ export default function DecisionSupport() {
             total: number;
         };
         owners: Owner[];
-        counts: { evaluated: number; high: number; accepted: number };
         today: string;
         operationResult: string | null;
+        dssAccess: { configuration: boolean; billingEvidence: boolean };
     };
+    const query = { building: selectedBuildingCode };
+    const requested = new URL(
+        page.url,
+        'http://inertia.local',
+    ).searchParams.get('view');
+    const view =
+        requested === 'usage' && exploratoryHistory
+            ? 'usage'
+            : requested === 'catalogue' && conservationCatalogue
+              ? 'catalogue'
+              : requested === 'rates' && historicalRates
+                ? 'rates'
+                : null;
+    const modules = page.props.auth.user?.accessibleModules ?? [];
+    const filters = (
+        <EnergyFilters
+            buildings={buildings}
+            selected={selectedBuildingCode}
+            latest={latestVerifiedPeriod}
+            onChange={(building) =>
+                router.get(
+                    DecisionSupportController.index.url({
+                        query: { building, view },
+                    }),
+                )
+            }
+        />
+    );
+    const detailLink = (target: string) =>
+        DecisionSupportController.index({ query: { ...query, view: target } });
+
+    if (view) {
+        const titles = {
+            usage: 'Explore Usage',
+            catalogue: 'Conservation catalogue',
+            rates: 'Historical billing rates',
+        };
+        const descriptions = {
+            usage: 'Explore verified consumption and billed demand.',
+            catalogue: 'Proposed conservation topics for manual review.',
+            rates: 'Read-only rates from verified bills.',
+        };
+        return (
+            <>
+                <Head title={titles[view]} />
+                <div className="flex min-w-0 flex-col gap-5 px-4 py-6 sm:px-7">
+                    <Link
+                        className="self-start text-sm font-semibold text-primary underline"
+                        href={DecisionSupportController.index({ query })}
+                    >
+                        Back to Decision Support
+                    </Link>
+                    <EnergyHeader
+                        title={titles[view]}
+                        description={descriptions[view]}
+                    />
+                    {filters}
+                    {view === 'usage' && (
+                        <DecisionSupportHistory history={exploratoryHistory} />
+                    )}
+                    {view === 'catalogue' && (
+                        <ConservationCatalogue
+                            catalogue={conservationCatalogue}
+                            comparison={comparison}
+                            history={exploratoryHistory}
+                        />
+                    )}
+                    {view === 'rates' && (
+                        <HistoricalEffectiveRates history={historicalRates} />
+                    )}
+                    <EnergyFooter />
+                </div>
+            </>
+        );
+    }
     return (
         <>
             <Head title="Decision Support" />
-            <div className="flex flex-1 flex-col gap-6 px-7 pt-6 pb-10">
+            <div className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-6 pb-10 sm:px-7">
                 <EnergyHeader
                     title="Decision Support"
-                    description="Transparent rule evidence, management decisions and conservation actions."
-                    actions={
-                        <Button variant="outline" asChild>
-                            <Link
-                                href={SolarScenarioController.index({
-                                    query: { building: selectedBuildingCode },
-                                })}
-                            >
-                                Solar &amp; Scenarios
-                            </Link>
-                        </Button>
-                    }
+                    description="Review this building’s monthly evidence and recommendations."
                 />
-                <EnergyFilters
-                    buildings={buildings}
-                    selected={selectedBuildingCode}
-                    latest={latestVerifiedPeriod}
-                    onChange={(building) =>
-                        router.get(DecisionSupportController.index.url(), {
-                            building,
-                        })
-                    }
-                />
-                {!policyAvailable && (
-                    <EnergyNotice title="Rule policy unavailable" warning>
-                        The R1–R7 mapping and numeric trigger contract require
-                        reconciliation (C5). Rule generation and decisions are
-                        unavailable until a reviewed policy evaluator exists. No
-                        priority or tariff is inferred.
-                    </EnergyNotice>
-                )}
-                {!currentForecastId && (
-                    <EnergyNotice title="No current issued forecast">
-                        Recommendations require a current, eligible issued
-                        forecast and source-matched evaluated evidence.
-                        Historical decisions remain retained.
-                    </EnergyNotice>
-                )}
+                {filters}
                 {operationResult && (
                     <p role="status" className="text-sm text-primary">
                         {operationResult}
                     </p>
                 )}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <EnergyMetric
-                        title="Evaluated rules"
-                        value={counts.evaluated}
-                        caption="Current source and policy"
-                    />
-                    <EnergyMetric
-                        title="High-priority"
-                        value={counts.high}
-                        caption="Evaluated policy results only"
-                    />
-                    <EnergyMetric
-                        title="Accepted"
-                        value={counts.accepted}
-                        caption="Current source and policy"
-                    />
-                    <EnergyMetric
-                        title="Solar assessment"
-                        value="Screening only"
-                    />
-                </div>
+                <DecisionSupportInformation
+                    comparison={comparison}
+                    readiness={readiness}
+                    showCost={historicalRates !== null}
+                />
                 <Card className="min-w-0 rounded-[13px] shadow-none">
                     <CardHeader>
                         <CardTitle className="text-[17px]">
-                            Explainable recommendations
+                            <h2>Explainable recommendations</h2>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div
-                            className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring"
-                            role="region"
-                            aria-label="Recommendation review table"
-                            tabIndex={0}
-                        >
-                            <table className="w-full min-w-[780px] text-left text-xs">
-                                <thead className="bg-secondary text-[11px] text-primary">
-                                    <tr>
-                                        {[
-                                            'Rule / topic',
-                                            'Priority',
-                                            'Evidence',
-                                            'Decision / review',
-                                        ].map((title) => (
-                                            <th
-                                                key={title}
-                                                className="px-3 py-3 font-semibold"
-                                            >
-                                                {title}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recommendations.data.length === 0 ? (
+                        {!policyAvailable && (
+                            <p className="mb-3 text-sm">
+                                No recommendations can be decided while rules
+                                are inactive.
+                            </p>
+                        )}
+                        {recommendations.data.length === 0 ? (
+                            policyAvailable && (
+                                <p className="text-sm">
+                                    No evaluated recommendations for this
+                                    building.
+                                </p>
+                            )
+                        ) : (
+                            <div
+                                className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring"
+                                role="region"
+                                aria-label="Recommendation review table"
+                                tabIndex={0}
+                            >
+                                <table className="w-full min-w-[780px] text-left text-xs">
+                                    <thead className="bg-secondary text-[11px] text-primary">
                                         <tr>
-                                            <td
-                                                colSpan={4}
-                                                className="px-3 py-6 text-muted-foreground"
-                                            >
-                                                No evaluated recommendations
-                                                available for this building. A
-                                                data-readiness notice is not a
-                                                fired rule.
-                                            </td>
+                                            {[
+                                                'Rule / topic',
+                                                'Priority',
+                                                'Evidence',
+                                                'Decision / review',
+                                            ].map((title) => (
+                                                <th
+                                                    key={title}
+                                                    className="px-3 py-3 font-semibold"
+                                                >
+                                                    {title}
+                                                </th>
+                                            ))}
                                         </tr>
-                                    ) : (
-                                        recommendations.data.map((item) => (
+                                    </thead>
+                                    <tbody>
+                                        {recommendations.data.map((item) => (
                                             <tr
                                                 key={item.id}
                                                 className="border-b align-top"
@@ -444,7 +529,19 @@ export default function DecisionSupport() {
                                                         {item.title}
                                                     </p>
                                                     <p className="mt-1 text-muted-foreground">
-                                                        Run #{item.forecastId} ·{' '}
+                                                        {item.subjectKey ===
+                                                        'building'
+                                                            ? 'Building'
+                                                            : item.subjectKey
+                                                                  .replace(
+                                                                      'meter:',
+                                                                      'Meter #',
+                                                                  )
+                                                                  .replace(
+                                                                      'catalogue:',
+                                                                      'Catalogue ',
+                                                                  )}{' '}
+                                                        ·{' '}
                                                         {item.targetMonth.slice(
                                                             0,
                                                             7,
@@ -461,19 +558,13 @@ export default function DecisionSupport() {
                                                             <p>
                                                                 {item.message}
                                                             </p>
-                                                            <details className="mt-2">
-                                                                <summary className="cursor-pointer text-primary">
-                                                                    Supporting
-                                                                    numbers
-                                                                </summary>
-                                                                <pre className="mt-2 max-w-full rounded-md bg-secondary p-3 text-[11px] break-all whitespace-pre-wrap">
-                                                                    {JSON.stringify(
-                                                                        item.evidence,
-                                                                        null,
-                                                                        2,
-                                                                    )}
-                                                                </pre>
-                                                            </details>
+                                                            <div className="mt-2">
+                                                                <EvidenceValues
+                                                                    value={
+                                                                        item.evidence
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </>
                                                     ) : (
                                                         <p className="text-muted-foreground">
@@ -494,11 +585,11 @@ export default function DecisionSupport() {
                                                     />
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                         {(recommendations.prev_page_url ||
                             recommendations.next_page_url) && (
                             <nav
@@ -519,12 +610,80 @@ export default function DecisionSupport() {
                         )}
                     </CardContent>
                 </Card>
-                <EnergyNotice title="Forecasts estimate; rules explain">
-                    Every recommendation must show the supporting numbers. The
-                    Energy Manager accepts, rejects or defers. Acceptance
-                    creates one action with an explicit owner and due date; no
-                    DSS outcome is automatically a procurement decision.
-                </EnergyNotice>
+                <nav
+                    aria-label="Follow-up and tools"
+                    className="flex flex-wrap items-center gap-3"
+                >
+                    {modules.includes('action_tracker') && (
+                        <Button asChild>
+                            <Link
+                                href={ActionTrackerController.index({ query })}
+                            >
+                                Review actions
+                            </Link>
+                        </Button>
+                    )}
+                    {exploratoryHistory && (
+                        <Button asChild variant="outline">
+                            <Link href={detailLink('usage')}>
+                                Explore Usage
+                            </Link>
+                        </Button>
+                    )}
+                    {conservationCatalogue && (
+                        <Button asChild variant="outline">
+                            <Link href={detailLink('catalogue')}>
+                                Conservation catalogue
+                            </Link>
+                        </Button>
+                    )}
+                    {historicalRates && (
+                        <Button asChild variant="outline">
+                            <Link href={detailLink('rates')}>
+                                Historical billing rates
+                            </Link>
+                        </Button>
+                    )}
+                    {modules.includes('solar_scenarios') && (
+                        <Button asChild variant="outline">
+                            <Link
+                                href={SolarScenarioController.index({ query })}
+                            >
+                                Solar &amp; Scenarios
+                            </Link>
+                        </Button>
+                    )}
+                </nav>
+                {(dssAccess.configuration || dssAccess.billingEvidence) && (
+                    <details className="text-sm">
+                        <summary className="cursor-pointer font-semibold text-primary">
+                            Advanced workflows
+                        </summary>
+                        <nav
+                            aria-label="Advanced workflows"
+                            className="mt-3 flex flex-wrap gap-4 text-primary underline"
+                        >
+                            {dssAccess.billingEvidence && (
+                                <Link
+                                    href={BillingEvidenceController.index({
+                                        query,
+                                    })}
+                                >
+                                    Billing evidence
+                                </Link>
+                            )}
+                            {dssAccess.configuration && (
+                                <Link
+                                    href={DssConfigurationController.index({
+                                        query,
+                                    })}
+                                >
+                                    Configuration review
+                                </Link>
+                            )}
+                        </nav>
+                    </details>
+                )}
                 <EnergyFooter />
             </div>
         </>
