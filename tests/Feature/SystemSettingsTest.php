@@ -78,7 +78,7 @@ class SystemSettingsTest extends TestCase
         $this->assertNull(config('recommendations.policy_fingerprint'));
         config(['recommendations.policy_fingerprint' => hash('sha256', 'not approval')]);
         $this->get('/system-settings')->assertInertia(fn ($page) => $page->where('configuration.ruleGenerationEnabled', false)
-            ->where('configuration.policyState', 'Review required — no approved evaluator implemented'));
+            ->where('configuration.policyState', 'Review required — a configuration value is not an activation'));
     }
 
     public function test_fresh_role_is_checked_after_admin_or_manager_revocation(): void

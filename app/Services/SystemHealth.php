@@ -50,7 +50,9 @@ class SystemHealth
                 ['name' => 'Notification email', 'state' => 'Unconfigured', 'detail' => 'Domain notifications currently use the live in-app inbox. No SMTP delivery probe or queued email was sent.'],
                 ['name' => 'Encrypted backups / restore', 'state' => 'Unverified', 'detail' => 'No backup or restore-drill evidence is recorded by this application. A healthy database is not backup evidence.'],
                 ['name' => 'External monitoring / firewall', 'state' => 'Unverified', 'detail' => 'This authenticated application check cannot establish external monitoring, firewall rules or production TLS configuration.'],
-                ['name' => 'C5 rule generation', 'state' => config('recommendations.policy_fingerprint') === null ? 'Disabled' : 'Review required', 'detail' => 'An approved rule evaluator is not implemented. A policy configuration value is not approval and does not establish operational readiness.'],
+                ['name' => 'C5 rule generation', 'state' => config('recommendations.policy_fingerprint') !== null ? 'Review required'
+                    : (app(RecommendationPolicy::class)->configuredCount() > 0 ? 'Configured' : 'Disabled'),
+                    'detail' => 'Recommendation evaluation is implemented, but stays inactive unless a deployment activation pins exact approved versions for one building and effective window. A configuration value is not approval or operational readiness.'],
             ]];
     }
 

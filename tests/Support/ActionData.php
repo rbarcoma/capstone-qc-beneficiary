@@ -21,6 +21,7 @@ trait ActionData
         $forecast = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
         // Synthetic evaluator contract for test setup only, never production policy.
         $policy = hash('sha256', 'synthetic action lifecycle fixture contract');
+        FixtureReviewPolicy::install();
         config(['recommendations.policy_fingerprint' => $policy]);
         $recommendation = Recommendation::create(['forecast_id' => $forecast->id, 'rule_code' => 'R5', 'policy_fingerprint' => $policy,
             'source_fingerprint' => $forecast->dataset_fingerprint, 'title' => 'Synthetic accepted action', 'message' => 'Test fixture, not official advice.',

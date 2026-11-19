@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\AuditLog;
 use App\Models\Building;
 use App\Models\User;
+use App\Services\ModuleAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class SecurityBoundaryTest extends TestCase
@@ -39,6 +42,7 @@ class SecurityBoundaryTest extends TestCase
             ['POST', '/users/1/temporary-password'], ['PUT', '/account/password-setup'],
             ['POST', '/billing-evidence/services'], ['POST', '/billing-evidence/records/1'], ['POST', '/billing-evidence/1/verify'],
             ['POST', '/decision-support/configuration/1'], ['POST', '/decision-support/reviews/1'],
+            ['POST', '/decision-support/1/evaluate'],
         ] as [$method, $uri]) {
             $this->json($method, $uri)->assertStatus(419);
             $this->json($method, $uri, ['_token' => 'forged'])->assertStatus(419);
@@ -72,5 +76,46 @@ class SecurityBoundaryTest extends TestCase
         $this->actingAs($user)->post('/buildings', ['name' => 'Denied', 'code' => 'DENIED'])->assertForbidden();
         $this->assertDatabaseMissing('buildings', ['code' => 'DENIED']);
         $this->assertNull(config('recommendations.policy_fingerprint'));
+    }
+
+    public function test_domain_controller_routes_keep_authentication_and_module_restriction_coverage(): void
+    {
+        $checked = [];
+        foreach (Route::getRoutes() as $route) {
+            $action = $route->getActionName();
+            if (! str_starts_with($action, 'App\\Http\\Controllers\\')
+                || str_contains($action, '\\Settings\\') || str_contains($action, '\\TemporaryPasswordController@')) {
+                continue;
+            }
+            $name = $route->getName();
+            $this->assertContains('auth', $route->gatherMiddleware(), $name.' must require authentication.');
+            $this->assertArrayHasKey(ModuleAccess::forRoute($name) ?? '', ModuleAccess::catalogue(), $name.' must enforce its module restriction.');
+            $checked[] = $name;
+        }
+        $this->assertContains('decision-support.evaluate', $checked);
+        $this->assertContains('reports.download', $checked);
+        $this->assertContains('users.temporary-password', $checked);
+    }
+
+    public function test_role_denials_on_evaluation_and_configuration_are_audited_without_private_input(): void
+    {
+        $building = Building::factory()->create();
+        $actor = User::factory()->role('budget_officer')->create();
+        $this->actingAs($actor);
+        foreach (['decision-support.evaluate', 'dss.configuration.store'] as $name) {
+            $this->postJson(route($name, $building), ['reference' => 'PRIVATE-UAT-REFERENCE', 'authorization' => 'PRIVATE-REQUEST-POLICY'])->assertForbidden();
+            $this->assertDatabaseHas('audit_logs', ['actor_id' => $actor->id, 'event' => 'authorization.denied', 'reason' => 'POST '.$name]);
+        }
+        $events = AuditLog::where('actor_id', $actor->id)->where('event', 'authorization.denied')->get();
+        $this->assertCount(2, $events);
+        $this->assertStringNotContainsString('PRIVATE-', $events->toJson());
+        foreach (['dss_configurations', 'dss_configuration_events', 'recommendations', 'recommendation_decisions', 'actions'] as $table) {
+            $this->assertDatabaseCount($table, 0);
+        }
+        $this->assertSame([], config('recommendations.activations'));
+        $this->assertNull(config('recommendations.policy_fingerprint'));
+        $viewer = User::factory()->create();
+        $this->actingAs($viewer)->get(route('dss.configuration'))->assertForbidden();
+        $this->assertDatabaseHas('audit_logs', ['actor_id' => $viewer->id, 'event' => 'authorization.denied', 'reason' => 'GET dss.configuration']);
     }
 }

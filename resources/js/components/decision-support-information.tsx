@@ -6,10 +6,12 @@ export default function DecisionSupportInformation({
     comparison,
     readiness,
     showCost,
+    tariffActive,
 }: {
     comparison: ForecastComparison | null;
     readiness: DecisionReadiness | null;
     showCost: boolean;
+    tariffActive: boolean;
 }) {
     if (!comparison || !readiness) {
         return (
@@ -31,7 +33,9 @@ export default function DecisionSupportInformation({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm">
-                        Unavailable — no active tariff.
+                        {tariffActive
+                            ? 'A reviewed tariff is active for R1. Any matching estimate appears in the recommendations below.'
+                            : 'Unavailable — no active tariff.'}
                     </CardContent>
                 </Card>
             )}

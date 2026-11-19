@@ -25,8 +25,8 @@ class RecommendationWorkflow
             'evidence' => ['prohibited'], 'priority' => ['prohibited'], 'evaluation_status' => ['prohibited'], 'forecast_id' => ['prohibited'], 'rule_code' => ['prohibited'],
         ])->validate();
 
-        DB::transaction(function () use ($recommendation, $user, $data) {
-            $building = $recommendation->forecast->building;
+        $building = $recommendation->forecast->building;
+        DB::transaction(function () use ($building, $recommendation, $user, $data) {
             app(BuildingDataset::class)->inspectLocked($building);
             $actor = User::lockForUpdate()->findOrFail($user->id);
             $current = Recommendation::lockForUpdate()->findOrFail($recommendation->id);
@@ -35,7 +35,9 @@ class RecommendationWorkflow
                 $this->fail('This recommendation changed. Refresh before deciding.');
             }
             $forecast = app(ForecastRead::class)->read($building, $actor)['current'];
-            $reason = app(RecommendationReadiness::class)->reason($current, $forecast['id'] ?? null);
+            $policy = app(RecommendationPolicy::class);
+            $contract = $policy->reviewContract($policy->resolve($building, $forecast['targetMonth'] ?? null, $actor, lock: true));
+            $reason = app(RecommendationReadiness::class)->reason($current, $forecast['id'] ?? null, $contract);
             if ($reason !== null) {
                 $this->fail($reason);
             }

@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use RuntimeException;
+use Tests\Support\FixtureReviewPolicy;
 use Tests\Support\ForecastData;
 use Tests\TestCase;
 
@@ -35,6 +36,7 @@ class RecommendationWorkflowTest extends TestCase
         $run = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
         // An explicitly synthetic evaluator contract, enabled ONLY in this test.
         $fingerprint = hash('sha256', 'synthetic workflow contract, not an approved rule');
+        FixtureReviewPolicy::install();
         if ($policy) {
             config(['recommendations.policy_fingerprint' => $fingerprint]);
         }

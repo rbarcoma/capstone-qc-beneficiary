@@ -1,10 +1,10 @@
 # QC Energy DSS — Quezon City Hall Energy Analytics, Forecasting, and Decision Support System
 
-Decision Support System for Quezon City Hall buildings: verified electricity analytics, next-eligible-month consumption forecasting, explicit-assumption renewable-energy screening and audited operational workflows. Rule generation remains disabled pending the reviewed C5 contract.
+Decision Support System for Quezon City Hall buildings: verified electricity analytics, next-eligible-month consumption forecasting, explicit-assumption renewable-energy screening and audited workflows. DSS development and synthetic UAT are complete; operational rule activation remains disabled.
 
 **Pilot scope:** Highrise Building and Treasury Building only. Not for households or citywide consumers.
 
-**Status (2026-11-15): P0–P6 verified; unblocked P7/P8 workflows verified; P9 review in progress.** Registry/intake/independent verification, NASA POWER/versioned analytics, real Linear/baseline forecasting, scenarios, action tracking, scoped PDF/Excel reports, current-source notifications, Admin System Health and read-only System Settings are implemented and tested. C5 generation, tariff outputs, numeric settings writes and production approval remain gated. See `docs/IMPLEMENTATION_PROGRESS.md`, `docs/P9_VERIFICATION.md` and `docs/AI_HANDOFF.md` for exact evidence, limits and the next task. No real billing history has been imported into development.
+**Status (2026-11-19): P9 scoped technical audit verified; operational/human acceptance pending.** Registry/intake/independent verification, NASA POWER/versioned analytics, Linear/baseline forecasting, account management, reviewed DSS evaluation/decision/actions, scenarios, scoped PDF/Excel reports, in-app notifications, Admin System Health and read-only System Settings are implemented and tested. Empty DSS activations, future tariff/budget/target and delivery gates remain intact. Local technical checks do not authorize real billing use or production deployment. See `docs/IMPLEMENTATION_PROGRESS.md`, `docs/P9_VERIFICATION.md` and `docs/AI_HANDOFF.md` for exact evidence and acceptance gates.
 
 ## Technology Stack
 
@@ -58,6 +58,7 @@ npm run build          # Production frontend build
 | `docs/IMPLEMENTATION_PLAN.md` | Phased roadmap P0–P9 |
 | `docs/IMPLEMENTATION_PROGRESS.md` | Verified progress log |
 | `docs/P9_VERIFICATION.md` | Integration/security/accessibility checkpoint and remaining acceptance gates |
+| `docs/DSS_UAT.md` | Completed synthetic browser acceptance matrix, screenshots and policy boundaries |
 | `docs/references/Proposed_QC_City_Hall_Solution.pdf` | Technical proposal (draft, unapproved) |
 
 AI coding agents: **read `AGENTS.md` first.**

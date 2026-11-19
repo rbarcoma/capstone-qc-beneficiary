@@ -37,12 +37,13 @@ class ReportSnapshot
                     $billing[] = $bill;
                 }
             }
-            $policy = app(RecommendationReadiness::class);
+            $policy = app(RecommendationPolicy::class);
+            $contract = $policy->reviewContract($policy->resolve($building, $forecast['targetMonth'] ?? null, $user));
             $recommendations = [];
-            if ($policy->policyAvailable() && $forecast !== null) {
+            if ($contract['fingerprint'] !== null && $forecast !== null) {
                 $recommendations = Recommendation::where('forecast_id', $forecast['id'])->where('source_fingerprint', $dataset?->fingerprint)
-                    ->where('policy_fingerprint', config('recommendations.policy_fingerprint'))->where('evaluation_status', 'evaluated')
-                    ->whereIn('rule_code', ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'])
+                    ->where('policy_fingerprint', $contract['fingerprint'])->where('evaluation_status', 'evaluated')
+                    ->whereIn('rule_code', $contract['rules'])
                     ->when(! $analytics['canViewCost'], fn ($query) => $query->where('contains_cost_data', false)->where('rule_code', '!=', 'R1'))
                     ->orderBy('id')->get()->map(fn (Recommendation $item) => $item->only(['id', 'rule_code', 'title', 'message', 'priority', 'evidence', 'decision']))->all();
             }
@@ -62,8 +63,8 @@ class ReportSnapshot
                 'generatedAt' => $generatedAt ?? now()->toIso8601String(), 'canViewCost' => $analytics['canViewCost'],
                 'dataset' => $analytics['dataset'], 'stale' => $analytics['stale'], 'rows' => $rows, 'billing' => $billing,
                 'latestPeriod' => $rows === [] ? null : $rows[count($rows) - 1]['month'], 'forecast' => $forecast,
-                'recommendations' => $recommendations, 'recommendationState' => $policy->policyAvailable() ? 'No current evaluated recommendations available unless listed.' : 'Unavailable: C5 rule policy is not approved; no rules evaluated.',
-                'openActions' => $actions, 'budgetState' => 'Unavailable: approved tariff source and budget cycle are not configured.',
+                'recommendations' => $recommendations, 'recommendationState' => $contract['fingerprint'] !== null ? 'Current evaluated recommendations are listed when available.' : 'Unavailable: no current C5 activation for this forecast.',
+                'openActions' => $actions, 'budgetState' => 'Unavailable: no approved budget cycle is configured.',
                 'notes' => [
                     'Verified, complete-building months from a current processed dataset only. Draft/partial/superseded values are excluded.',
                     'Forecast: current issued next-eligible-month run only; empirical error band is not calibrated confidence.',

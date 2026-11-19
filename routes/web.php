@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('actions/{action}', [ActionTrackerController::class, 'update'])->middleware('role:energy_manager')->name('actions.update');
     Route::get('decision-support', [DecisionSupportController::class, 'index'])->name('decision-support');
     Route::post('recommendations/{recommendation}/decide', [DecisionSupportController::class, 'decide'])->middleware('role:energy_manager')->name('recommendations.decide');
+    Route::post('decision-support/{building}/evaluate', [DecisionSupportController::class, 'evaluate'])->middleware(['role:admin,energy_manager', 'throttle:10,1'])->whereNumber('building')->name('decision-support.evaluate');
     Route::get('decision-support/configuration', [DssConfigurationController::class, 'index'])->middleware('role:admin,energy_manager,budget_officer')->name('dss.configuration');
     Route::post('decision-support/configuration/{building}', [DssConfigurationController::class, 'store'])->middleware(['role:admin,energy_manager', 'throttle:20,1'])->name('dss.configuration.store');
     Route::post('decision-support/reviews/{configuration}', [DssConfigurationController::class, 'transition'])->middleware(['role:admin,energy_manager,budget_officer', 'throttle:30,1'])->name('dss.configuration.transition');

@@ -20,6 +20,7 @@ use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\BillingEvidenceData;
+use Tests\Support\FixtureReviewPolicy;
 use Tests\Support\ForecastData;
 use Tests\TestCase;
 
@@ -259,6 +260,7 @@ class DssWorkspaceTest extends TestCase
         $f = $this->forecastFixture(16, true);
         $run = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
         $policy = hash('sha256', 'isolated per-subject workflow fixture, not policy');
+        FixtureReviewPolicy::install();
         config(['recommendations.policy_fingerprint' => $policy]);
         foreach (['building', 'meter:'.$f['meters'][0]->id, 'meter:'.$f['meters'][1]->id] as $index => $key) {
             $item = Recommendation::create(['forecast_id' => $run->id, 'rule_code' => 'R4', 'policy_fingerprint' => $policy,
@@ -289,6 +291,7 @@ class DssWorkspaceTest extends TestCase
         }
         $run = app(ForecastIssuance::class)->issue($f['building'], $f['user'])['forecast'];
         $policy = hash('sha256', 'synthetic catalogue subject fixture');
+        FixtureReviewPolicy::install();
         foreach ($catalogues as $cat) {
             $item = Recommendation::create(['forecast_id' => $run->id, 'rule_code' => 'R5', 'policy_fingerprint' => $policy,
                 'source_fingerprint' => $run->dataset_fingerprint, 'subject_key' => 'catalogue:'.$cat->subject_key,

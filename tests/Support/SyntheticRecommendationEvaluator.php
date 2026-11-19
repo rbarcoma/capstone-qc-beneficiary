@@ -55,6 +55,7 @@ final class SyntheticRecommendationEvaluator
                 if (! $match || DataFingerprint::hash($match->only(array_keys($attributes))) !== DataFingerprint::hash($expected)) {
                     continue;
                 }
+                FixtureReviewPolicy::install();
                 config(['recommendations.policy_fingerprint' => $identity['policy_fingerprint']]);
                 try {
                     app(RecommendationWorkflow::class)->decide($match, $actor, $input);
@@ -70,7 +71,7 @@ final class SyntheticRecommendationEvaluator
 
     public static function guard(): void
     {
-        if (! app()->environment('testing') || ! app()->runningInConsole() || config('recommendations.policy_fingerprint') !== null
+        if (! app()->environment('testing') || ! app()->runningInConsole() || config('recommendations.policy_fingerprint') !== null || config('recommendations.activations') !== []
             || DB::connection()->getDatabaseName() !== 'testing' || DB::scalar('SELECT DATABASE()') !== 'testing') {
             throw new LogicException('Synthetic evaluation requires the isolated testing database and disabled runtime policy.');
         }

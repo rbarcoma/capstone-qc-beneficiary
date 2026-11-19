@@ -1,6 +1,6 @@
 # IMPLEMENTATION_PLAN.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-18
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-19
 
 Incremental, phase-gated plan. **No phase is complete because its Figma design exists.** Completion requires code + passing checks + verified progress entry. Status: `Not started` unless marked otherwise.
 
@@ -54,6 +54,8 @@ Incremental, phase-gated plan. **No phase is complete because its Figma design e
 
 ## P7 — Decision Support and renewable-energy pre-assessment
 
+- **Current technical status (2026-11-19): development and synthetic UAT Existing and verified.** The application evaluator, reviewed configuration/per-subject workflow and explicit Solar installation inputs are complete within the approved development contract. Synthetic UAT passed20 checks with exactly3 actions for3 accepted subjects; see `DSS_UAT.md` and ML/DSS §5.11. Operational activation, real tariffs/thresholds/targets and City Hall approvals remain blocked. Earlier dated P7 checkpoints below describe their original scope; they are not instructions to rebuild the evaluator.
+
 - **R1 approved development contract items1–4 (2026-11-18, Existing and verified):** additive migration000015 (4 tables, no legacy backfill), separate customer accounts/services, retained versioned billing evidence, independently authorized internal draft/verify with atomic audit, exact-cent classification/reconciliation and source-hash/version checks. Read-only historical gross/net-service rates with complete-meter coverage, explicit window gaps/weighted sums and existing cost RBAC; no future-price assumptions or warning activation. New23 tests/304 assertions; full332 total/329 passed/3 existing skips/4789 assertions, frontend checks and17 desktop/mobile browser scans passed. Local migration preserved52 existing tables/17 billing records; new tables empty. ML/DSS §5.8 defines verified bounds and remaining import/public-entry/future-tariff gates.
 
 - **Tasks:** 1) Rules R1–R7 (reconcile count/units/triggers — conflict C5). 2) Evidence display + accept/reject/defer workflow + `recommendations`/`actions`. 3) Solar pre-assessment (screening-level only). 4) What-if arithmetic. 5) Configurable thresholds (if approved). 6) UI (Solar `2024:1584`, Decision Support `2024:1332` inspected).
@@ -73,7 +75,7 @@ Incremental, phase-gated plan. **No phase is complete because its Figma design e
 ## P9 — Integration, security, testing, and final review
 
 - **Tasks:** end-to-end monthly cycle test (§11.1 8 steps), security pass (HTTPS/least-privilege/backups = production decisions; several are Blocked on City Hall choices), accessibility + responsive checks, full `composer test` + types + build, documentation refresh.
-- **Status:** **In progress — local technical review verified; reviewer/production acceptance pending (2026-11-15)**. Retained monthly-cycle real-worker/default-null-C5 integration1/165, full243 tests/Python7 and clean dependency checkpoints. Expanded local accessibility adds73 passing core/dialog/error/auth/settings/mobile cases; prior24 P8 cases regression-checked for shared token/focus fixes. Scoped inconclusive items reviewed with178 computed-color samples, keyboard containment/scrolling and accessibility-tree/empty-table evidence. Two new security cases verify real CSRF middleware on19 mutation routes and registration privilege-injection resistance; no application backend change. Final frontend/Pint/PHPStan checks passed. Human-operated assistive-technology review and City Hall policy/privacy/hosting/backup/TLS acceptance remain pending; coverage is not universal WCAG certification. See `docs/P9_VERIFICATION.md`.
+- **Status (2026-11-19): scoped technical integration/security audit Existing and verified; operational readiness Blocked-requires human/City Hall acceptance and deployment evidence.** Preserved prior accessibility and completed DSS UAT. Fixed one reproduced omission in route-role denial auditing; added auth/module-route coverage and evaluator CSRF regression. Full362 tests/359 passed/3 existing skips/5390 assertions; Python7, types/lint/build, platform/dependency consistency and package advisory checks passed. The repository-wide formatter/aggregate CI gate remains red on existing formatting. Privacy/retention/office training, human screen-reader review, hosting/TLS/least privilege and encrypted backup/restore proof remain outstanding. `P9_VERIFICATION.md` now contains the proposal-linked audit matrix, technical-versus-approval gaps and operational acceptance sequence. No production configuration, data, policy activation or Git operation.
 
 ## Dependency graph
 

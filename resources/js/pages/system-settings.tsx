@@ -180,9 +180,9 @@ export default function SystemSettings() {
                                 <li>ICT approves hosting and security.</li>
                                 <li>DPO reviews data privacy controls.</li>
                             </ul>
-                            <EnergyNotice title="Rule generation remains disabled">
-                                {config.policyState}. Changing a configuration
-                                value does not implement an approved evaluator.
+                            <EnergyNotice title="Recommendation policy">
+                                {config.policyState}. Approving a version here
+                                does not activate it for evaluation.
                             </EnergyNotice>
                             <Button variant="outline" asChild>
                                 <Link

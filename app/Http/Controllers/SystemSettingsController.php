@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\BuildingDataset;
 use App\Services\ForecastEligibility;
 use App\Services\NasaPowerWeather;
+use App\Services\RecommendationPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,8 @@ class SystemSettingsController extends Controller
             'configuration' => [
                 'tariffPhpPerKwh' => null, 'monthlyTargetKwh' => null, 'changeReviewPercent' => null,
                 'pvCapacityKwp' => null, 'pvPerformanceRatio' => null, 'ruleGenerationEnabled' => false,
-                'policyState' => config('recommendations.policy_fingerprint') === null ? 'Disabled — C5 approval required' : 'Review required — no approved evaluator implemented',
+                'policyState' => config('recommendations.policy_fingerprint') !== null ? 'Review required — a configuration value is not an activation'
+                    : (app(RecommendationPolicy::class)->configuredCount() > 0 ? 'Activation configured — verify pinned versions per building' : 'Disabled — no authorized activation deployed'),
                 'minimumObservations' => ForecastEligibility::MINIMUM_OBSERVATIONS,
                 'forecastHorizon' => 'Next eligible month only', 'primaryModel' => 'Linear Regression', 'baseline' => 'Previous-three-month average',
                 'weatherSource' => 'NASA POWER', 'weatherParameters' => array_keys(NasaPowerWeather::UNITS),

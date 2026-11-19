@@ -50,6 +50,7 @@ type Recommendation = {
     message: string | null;
     evidence: Record<string, unknown> | null;
     sourceCurrent: boolean;
+    policyCurrent: boolean;
     decision: string;
     evaluationStatus: string;
     canDecide: boolean;
@@ -349,8 +350,10 @@ export default function DecisionSupport() {
         exploratoryHistory,
         conservationCatalogue,
         historicalRates,
-        policyAvailable,
         recommendations,
+        buildingId,
+        evaluation,
+        errors,
         owners,
         today,
         operationResult,
@@ -364,7 +367,14 @@ export default function DecisionSupport() {
         exploratoryHistory: ExploratoryHistory | null;
         conservationCatalogue: ConservationCatalogueData | null;
         historicalRates: HistoricalRates | null;
-        policyAvailable: boolean;
+        buildingId: number | null;
+        evaluation: {
+            available: boolean;
+            canEvaluate: boolean;
+            tariffActive: boolean;
+            reason: string;
+        };
+        errors?: { evaluation?: string };
         recommendations: {
             data: Recommendation[];
             prev_page_url: string | null;
@@ -375,6 +385,25 @@ export default function DecisionSupport() {
         today: string;
         operationResult: string | null;
         dssAccess: { configuration: boolean; billingEvidence: boolean };
+    };
+    const [evaluating, setEvaluating] = useState(false);
+    const runEvaluation = () => {
+        if (
+            !buildingId ||
+            evaluating ||
+            !evaluation.canEvaluate ||
+            !evaluation.available
+        )
+            return;
+        setEvaluating(true);
+        router.post(
+            DecisionSupportController.evaluate.url(buildingId),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setEvaluating(false),
+            },
+        );
     };
     const query = { building: selectedBuildingCode };
     const requested = new URL(
@@ -469,25 +498,49 @@ export default function DecisionSupport() {
                     comparison={comparison}
                     readiness={readiness}
                     showCost={historicalRates !== null}
+                    tariffActive={evaluation.tariffActive}
                 />
                 <Card className="min-w-0 rounded-[13px] shadow-none">
                     <CardHeader>
-                        <CardTitle className="text-[17px]">
-                            <h2>Explainable recommendations</h2>
-                        </CardTitle>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <CardTitle className="text-[17px]">
+                                <h2>Explainable recommendations</h2>
+                            </CardTitle>
+                            {evaluation.canEvaluate && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={runEvaluation}
+                                    disabled={
+                                        evaluating || !evaluation.available
+                                    }
+                                >
+                                    {evaluating
+                                        ? 'Evaluating…'
+                                        : 'Run evaluation'}
+                                </Button>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        {!policyAvailable && (
-                            <p className="mb-3 text-sm">
-                                No recommendations can be decided while rules
-                                are inactive.
+                        {!evaluation.available && (
+                            <p className="mb-3 text-sm">{evaluation.reason}</p>
+                        )}
+                        {errors?.evaluation && (
+                            <p
+                                role="alert"
+                                className="mb-3 text-sm text-destructive"
+                            >
+                                {errors.evaluation}
                             </p>
                         )}
                         {recommendations.data.length === 0 ? (
-                            policyAvailable && (
+                            evaluation.available && (
                                 <p className="text-sm">
                                     No evaluated recommendations for this
                                     building.
+                                    {evaluation.canEvaluate &&
+                                        ' Run evaluation to check the activated rules.'}
                                 </p>
                             )
                         ) : (
@@ -555,6 +608,14 @@ export default function DecisionSupport() {
                                                 <td className="max-w-md px-3 py-4">
                                                     {item.sourceCurrent ? (
                                                         <>
+                                                            {!item.policyCurrent && (
+                                                                <p className="font-semibold">
+                                                                    Historical
+                                                                    evidence ·
+                                                                    not current
+                                                                    advice
+                                                                </p>
+                                                            )}
                                                             <p>
                                                                 {item.message}
                                                             </p>

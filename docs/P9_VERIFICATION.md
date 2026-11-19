@@ -1,6 +1,57 @@
 # P9 — Integration and acceptance evidence
 
-**Updated:** 2026-11-15. **Status:** technical integration/security and expanded local accessibility checkpoint Existing and verified; human-operated assistive-technology review/production acceptance remains incomplete. This is evidence from this repository, not proof that City Hall approved deployment or that synthetic fixture metrics describe real buildings.
+**Updated:** 2026-11-19. **Status:** final scoped technical integration/security audit Existing and verified; P9 operational readiness is **Blocked-requires human/City Hall acceptance and deployment evidence**. The repository-wide formatting gate also remains failing. This is repository evidence, not proof that City Hall approved deployment or that synthetic metrics describe real buildings. Dated checkpoints below retain their original results.
+
+## Final integration and operational-readiness audit — 2026-11-19
+
+Read the original 28-page proposal, current code and prior P9/DSS UAT evidence. Completed DSS development and synthetic UAT were retained, not reimplemented or rerun in a browser. The scope was integration boundaries, permissions, privacy, deployment prerequisites and documentation. No UI/Figma, calculation, migration, policy activation, normal-runtime data or Git operation was changed/performed.
+
+### Confirmed defect and bounded fix
+
+`EnsureUserHasRole` correctly rejected unauthorized evaluation/configuration requests but omitted `decision-support.evaluate` and `dss.*` from its existing denial-audit allowlist. A new regression test first failed because `POST decision-support.evaluate` returned403 with an empty audit table. The middleware now records only actor, event and method/named route for those denials. Permission grants, response status, evaluator/approval services and source data are unchanged. Tests check Budget mutation denial, Viewer configuration-page denial, absence of submitted private references from logs and no recommendation/configuration/action writes.
+
+`SecurityBoundaryTest` also checks that every registered domain-controller route retains auth and a valid module mapping, and extends real-CSRF coverage to the evaluator:30 mutation endpoints,60 missing/forged-token requests plus the genuine-token positive control. Personal settings/password-setup are deliberately outside the domain module catalogue and keep their existing authentication/setup rules.
+
+### Audit against proposal and verified implementation
+
+| Area / proposal reference | Existing and verified technical evidence | Remaining gap and classification |
+| --- | --- | --- |
+| Monthly integration — §11.1, Table14 | `MonthlyCycleIntegrationTest` covers HTTP upload→Draft→independent confirmation→processing→real worker→report/notice→actual/correction retraction. Completed `DSS_UAT.md` covers review→decision→one action per acceptance. Both are included in retained/current test evidence. | Full operating routine is **Blocked-requires approval**: actual bill receipt, office responsibility/timing, automatic scheduling and budget-cycle use are not established by synthetic tests. |
+| RBAC/module integration — Table4, §12.2 | Fresh persisted account/access-version checks; route and policy gates; all domain routes mapped to module restrictions. Tests cover all five roles, auxiliary endpoints, account deactivation, last-Admin protection and revocation during forecast/report work. Denial audit omission fixed above. | Office permission matrix, public registration/email-verification enforcement, account deletion/retention and confirmation-window defaults still require owner/DPO decisions. No new grant or auth policy was adopted. |
+| Building/cost scope — §6.2/§9.1 | Facilities assigned-building queries/policies, empty assignment behavior, cross-building/run denial, cost/account-reference exclusions, current-source exports and final locked permission check. See access/export/workflow tests and completed DSS UAT. | Real Treasury coverage, building metadata and account/service associations are **Blocked-requires confirmation/authorization**. Existing demo fixtures are not institutional data acceptance. |
+| Accessibility/responsiveness | Prior P9:73 expanded cases plus24 P8 cases; M16:18 cases; completed DSS UAT:22 scans/28 screenshots, keyboard checks and130 contrast samples. Their scope and inconclusive checks remain explicitly documented. No frontend change required another browser scan in this audit. | AT-01–AT-07 below remain **Pending human review**. Actual spoken VoiceOver/NVDA behavior, office usability/training and wider browser/theme/zoom acceptance are not certified by axe. |
+| Validation, secrets and exports — Table16 | Real CSRF, registration privilege-injection resistance, atomic version/source checks, minimal shared/auth DTOs, restricted account references and diagnostics. PDF remote/PHP/JS disabled; Blade escaped; spreadsheet text written explicitly; downloads INTERNAL/private/no-store and audited before release. | DPO-approved privacy notice/lawful basis/retention, production session/transport/secrets configuration, independent security review and incident/log ownership remain **Blocked-requires approval/evidence**. |
+| Runtime/dependencies — §8.1/Table16 | Sail PHP8.5.12 satisfies installed non-dev Composer platform requirements; isolated pinned Python imports/worker tests pass, `pip check` finds no broken requirements. Composer locked audit: no advisories; npm audit:0 vulnerabilities. | These are local, point-in-time checks. Production OS/image patching and Python security-advisory review remain **Existing but unverified / operating evidence pending**; package consistency is not a vulnerability scan. |
+| Deployment/recovery — §7.4/§8.3/§12.2 | Source inspection shows a development Sail bind mount, published app/Vite/MySQL ports and no repository-owned production deployment/backup/restore automation. Migrations through000016 are applied locally (`migrate:status`, read only). Health explicitly distinguishes local probes from operational readiness. | Approved hosting target, production web root/image/runtime/proxy, HTTPS redirects/cookies, firewall, least-privilege app/DB credentials, protected secrets, encrypted backups and a successful isolated restore are **Blocked-requires ICT/DPO decisions and environment-specific evidence**. Development Compose must not be represented as a hardened deployment. |
+| Scheduling/delivery — Table12/§11.1 | Current-source in-app inbox/read receipts work independently of SMTP; forecasting/weather are explicit requests. `routes/console.php` has no domain schedule. | SMTP/queue/scheduler, overdue/error-tolerance/high-priority alerts remain **Proposed/unconfigured or policy-blocked**, not a broken completed module. No worker/schedule/email was activated. |
+| Documentation/handover — §7.4/§15/§16 | This audit reconciles stale M16/current architecture/P7/P9 summaries with implemented code and adds this evidence matrix. Proposal Table20#9 PDF/Excel verification is technically satisfied by real export tests. | Named sponsor/business/technical contacts, role-based user guide/monthly checklist, training attendance, target-specific deployment/recovery runbook and2–3 real pilot cycles with measured success baselines remain **Pending operational handover/acceptance**. |
+
+### Checks executed in this audit
+
+| Check | Result |
+| --- | --- |
+| Targeted security/monthly-cycle/role/building/user-management/report regressions | **39 passed /769 assertions** |
+| `SecurityBoundaryTest` final targeted confirmation | **4 passed /219 assertions** |
+| `COMPOSER_PROCESS_TIMEOUT=1200 composer test` | **362 total /359 passed /3 existing optional-2FA skips /5390 assertions**; Pint passed, PHPStan0 errors |
+| `composer test:forecast` | **7 passed** |
+| `npm run types:check`, `npx vp lint`, `npm run build` | **Passed**; build regenerated Wayfinder. Optional font-fallback advisory is non-blocking. |
+| `composer audit --locked --no-interaction`, `npm audit --json` | No Composer advisories /0 npm vulnerabilities |
+| `vendor/bin/sail composer check-platform-reqs --no-dev` | All installed runtime requirements passed in Sail |
+| Sail `.venv/bin/python -m pip check` | No broken requirements |
+| `vendor/bin/sail artisan migrate:status` | All19 migration files through000016 already applied; no migration executed |
+| Normal-runtime preservation recheck | All19 monitored table counts/hashes still match the recorded UAT baseline; empty activations/null fingerprint; UAT listener/forwarder remain stopped |
+| `npm run check` | **Fails** on the same existing formatting in13 Markdown files and `resources/js/components/user-management.tsx`; broad formatter cleanup was not performed. Consequently the aggregate `composer ci:check` formatting gate is not green. |
+
+### Operational acceptance sequence — not executed
+
+1. Sponsor/EM confirm the data owner, permitted source records, encoding/review responsibilities and pilot scope. Validate Treasury coverage and metadata before real-data acceptance.
+2. Nominated reviewers complete AT-01–AT-07 and role-based office walkthroughs; record actual findings and training/handover attendance. Route only concrete defects for fixes.
+3. ICT/DPO approve a target and privacy/retention/access policy, including registration, verification, account lifecycle and session defaults. Record responsible/recovery contacts and support/patch ownership.
+4. In an approved isolated staging target, prepare locked PHP/Node/Python runtime and assets; verify web root, restricted secrets, debug-off configuration, TLS/proxy/cookie behavior, network/DB least privilege, migration plan and rollback compatibility. Keep recommendation activations empty. Never reset verified data or apply local Sail defaults as production controls.
+5. Record encrypted backup scheduling, off-host/access/key ownership and a successful restore into an isolated target, including source/audit integrity and agreed recovery objectives. A passing local System Health probe is insufficient.
+6. Obtain release/privacy/office approval before approved real-data import or deployment. Observe2–3 actual monthly cycles and agree success measures (proposal §15). Scheduling/delivery and any operational policy activation require their own approved implementation and verification.
+
+Until those artifacts exist, the technical audit is complete but P9 is **not an accepted production deployment**. Missing institutional/operating evidence is not resolved by adding modules or enabling policies.
 
 ## Verified technical checkpoint
 
@@ -43,7 +94,7 @@ The follow-up changed only frontend focus/contrast; types/build/3-file scoped li
 **Continuation review (2026-11-15):** no further unblocked application implementation task was identified in the current handoff/phase scope, and no new human-review findings or approval evidence were supplied. The unblocked documentation preparation is completed below. P9 remains **reviewer/production acceptance pending**. Existing passed checks are retained; this documentation-only continuation did not run tests, browser scans, dependency audits or infrastructure probes. Source inspection confirms `config/recommendations.php` still declares a null policy fingerprint; this is not a new runtime/config-cache verification.
 
 1. **Next acceptance work:** reviewer-operated VoiceOver/NVDA (or office-selected assistive technology) walkthrough of navigation, tables/charts, form errors and dialog transitions. Browser accessibility-tree/keyboard/computed-color evidence below is verified, but is not evidence of spoken announcements on a real screen reader. Follow up on any reviewer-reported defect; do not repeat successful automated checkpoints without a change or new concern. Coverage is the listed light-theme states, not every role/browser/theme/state or a blanket WCAG certification.
-2. **C5:** user-reviewed coherent R1–R7 triggers/units/evidence/thresholds/priorities before evaluator or production decisions. The pending approval matrix is in [`ML_AND_DSS_RULES.md` §5.1](ML_AND_DSS_RULES.md#51-c5-decision-matrix--for-approval-not-approved-policy); §5.2 records the R7/no-forecast storage/workflow mismatch. No values or priorities are approved. Keep `recommendations.policy_fingerprint` null.
+2. **C5 operational activation:** evaluator development and synthetic UAT are complete (§5.11 of `ML_AND_DSS_RULES.md`; `DSS_UAT.md`). Named operational sources/methods/values/priorities/effective windows and deployment authorization remain pending. R7 is already resolved as a read-time notice. Keep activations empty and the legacy fingerprint null; do not reopen evaluator development to fill an approval gap.
 3. **Planning parameters:** tariff source/demand charges/budget cycle, target ownership/effective dates, overdue timings and error-tolerance contract before mutation/alerts. Read-only status pages do not satisfy these decisions.
 4. **Delivery/operations:** SMTP and monitored scheduler/queue/backup/restore evidence before email/scheduled workflow claims.
 5. **Production acceptance:** authorized real-data use, Treasury coverage, office permission confirmation, hosting/HTTPS/firewall/least-privilege/backup and DPO/ICT sign-off. Do not infer these from tests, config values or Figma.
@@ -114,7 +165,7 @@ Office responsibilities below follow the existing handoff/permissions/architectu
 | Gate | Required input/evidence to resume | Responsible party / coordination | Current status |
 | --- | --- | --- | --- |
 | Assistive-technology acceptance | Completed worksheet with actual screen-reader/browser evidence; concrete issues routed for fixes | User/team nominates reviewer | Pending human review |
-| C5 evaluator/new recommendation decisions | Coherent reviewed R1–R7 mapping, triggers, valid units, thresholds, evidence requirements and priorities; subsequent implementation/verification of that contract | User with relevant City Hall offices | Blocked-requires approval; generator disabled, source policy null |
+| C5 operational activation | Named authority, operational sources/methods/values/priorities/effective windows and separately authorized deployment activation | User with relevant City Hall offices | Development/UAT Existing and verified; operational activation Blocked-requires approval; activations empty, legacy fingerprint null |
 | Tariff/budget and numerical planning settings | Tariff source/demand-charge treatment, budget cycle, target ownership/effective dates/version contract; explicit overdue/error-tolerance definitions before corresponding alerts | Budget Officer / Energy Manager; owners confirmed by user | Blocked-requires decisions; no default tariff/threshold or setting writes |
 | Real institutional data and pilot coverage | Written authorization for real Meralco use, confirmed Treasury coverage and relevant building metadata; approved data handling/location | User / City Hall; capstone team for coverage, Facilities for metadata | Blocked-requires authorization/confirmation; synthetic tests are not real-data validation |
 | Operational permissions and privacy | Office-confirmed permission matrix/encoding-review responsibilities and DPO review of account/personal-data handling | City Hall offices / Energy Manager / DPO | Blocked-requires confirmation/approval |

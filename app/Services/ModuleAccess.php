@@ -68,7 +68,7 @@ class ModuleAccess
             $route === 'model-evaluation' => 'model_evaluation',
             $route === 'energy-analytics' => 'energy_analytics',
             $route === 'building-comparison' => 'building_comparison',
-            $route === 'decision-support', str_starts_with($route, 'recommendations.'), str_starts_with($route, 'dss.') => 'decision_support',
+            $route === 'decision-support', $route === 'decision-support.evaluate', str_starts_with($route, 'recommendations.'), str_starts_with($route, 'dss.') => 'decision_support',
             $route === 'action-tracker', str_starts_with($route, 'actions.') => 'action_tracker',
             str_starts_with($route, 'solar-scenarios') => 'solar_scenarios',
             $route === 'reports', str_starts_with($route, 'reports.') => 'reports',

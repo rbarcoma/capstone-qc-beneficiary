@@ -1,13 +1,13 @@
 # SYSTEM_ARCHITECTURE.md
 
-**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-13
+**Repo:** `capstone-qc-beneficiary` · Last updated: 2026-11-19
 
 ## 1. Stack (verified in this repo)
 
 | Layer | Technology | Verified where |
 | --- | --- | --- |
 | Backend | Laravel `^13.17`, PHP 8.3 | `composer.json` |
-| Auth | Laravel Fortify `^1.37` (login, registration, 2FA, password reset) | `app/Actions/Fortify/`, `config/fortify.php` |
+| Auth | Laravel Fortify `^1.37` (login, registration, email verification, password reset; optional 2FA currently disabled) | `app/Actions/Fortify/`, `config/fortify.php` |
 | SPA bridge | Inertia 3 (`inertiajs/inertia-laravel`) | `composer.json`, `resources/js/app.tsx` |
 | Frontend | React 19 + TypeScript | `package.json`, `tsconfig.json` |
 | Styling | Tailwind CSS 4 (`@tailwindcss/vite`) | `package.json`, `resources/css/app.css` |
@@ -48,7 +48,7 @@ tests/                      # Feature: Auth/*, Settings/*, Dashboard; Unit: Exam
 ## 3. Request lifecycle (current)
 
 1. HTTP request → Laravel (routes in `routes/web.php`, `routes/settings.php`).
-2. Middleware: web stack → `HandleInertiaRequests` (shares `auth.user`, flash, `name`/`quote` props) → `HandleAppearance`.
+2. Web middleware includes `EnsureAccountAccess` before route binding: reload persisted account, enforce active/setup/access-version state and module restrictions. `HandleAppearance` and `HandleInertiaRequests` supply the existing shell, minimal `auth.user`, name and navigation metadata. Role middleware and entity policies enforce permissions; frontend visibility is presentation only.
 3. Fortify handles auth endpoints directly (login/register/2FA/reset) via `FortifyServiceProvider` actions.
 4. Controllers return Inertia pages; Wayfinder regenerates `resources/js/actions/` + `resources/js/routes/` for typed frontend calls (Vite plugin: `@laravel/vite-plugin-wayfinder`).
 5. Frontend pages render inside `resources/js/layouts/` (app sidebar layout, auth layouts, settings layout).
@@ -87,6 +87,8 @@ Key constraints preserved from the proposal:
 ## 5. Architectural decisions already made (in this repo)
 
 **P8/P9 additions (2026-11-15):** scoped exports render in memory, final-check source/actor/permissions under locks and commit preparation audits before release. Live operational notices derive current sources with personal read receipts (no SMTP/queue delivery claim). Admin System Health runs only explicit bounded read/permission/runtime diagnostics; System Settings is an Admin/EM read-only allowlist with no policy-setting writes. C5 remains null. Feature tests are independent of developer Vite/SSR; isolated synthetic monthly-cycle integration and scope-limited accessibility evidence are in `P9_VERIFICATION.md`.
+
+**Current integration audit (2026-11-19):** domain services, five-role/module/building authorization, account lifecycle, independent configuration/billing review and the on-demand evaluator are implemented; the proposed diagram above retains its original planning labels. Application evaluation uses exact deployment pins and ships with empty activations; R6 is explicit scenario arithmetic and R7 read-time readiness. Scope/current-source checks join intake→datasets→forecasts→DSS/reports/notices/actions, with historical records retained. The final P9 audit fixed route-role denial logging only; UI, calculations and schema are unchanged. Current technical results and production-target/recovery gates are in `P9_VERIFICATION.md`; development Sail is not a production deployment recipe.
 
 | Decision | Rationale |
 | --- | --- |

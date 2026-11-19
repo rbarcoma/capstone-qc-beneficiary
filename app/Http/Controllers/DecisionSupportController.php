@@ -8,6 +8,8 @@ use App\Models\Recommendation;
 use App\Models\RecommendationDecision;
 use App\Models\User;
 use App\Services\DecisionSupportInformation;
+use App\Services\RecommendationEvaluator;
+use App\Services\RecommendationPolicy;
 use App\Services\RecommendationReadiness;
 use App\Services\RecommendationWorkflow;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +19,7 @@ use Inertia\Response;
 
 class DecisionSupportController extends Controller
 {
-    public function index(Request $request, DecisionSupportInformation $information, RecommendationReadiness $readiness): Response
+    public function index(Request $request, DecisionSupportInformation $information, RecommendationReadiness $readiness, RecommendationPolicy $policy): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -28,20 +30,25 @@ class DecisionSupportController extends Controller
         $buildingId = $building === null ? 0 : $building->id;
         $information = $building ? $information->read($building, $user) : null;
         $data = $information['forecast'] ?? null;
+        $targetMonth = $data['current']['targetMonth'] ?? null;
+        $activation = $building ? $policy->resolve($building, $targetMonth, $user) : null;
+        $contract = $policy->reviewContract($activation);
+        $available = $contract['fingerprint'] !== null && $targetMonth !== null;
         $query = Recommendation::query()->whereHas('forecast', fn ($query) => $query->where('building_id', $buildingId))
             ->when($user->hasRole(UserRole::FacilitiesPersonnel), fn ($query) => $query->where('contains_cost_data', false)->where('rule_code', '!=', 'R1'));
         $current = (clone $query)->where('forecast_id', $data['current']['id'] ?? 0)
             ->where('source_fingerprint', $data['eligibility']['datasetFingerprint'] ?? '')
-            ->where('evaluation_status', 'evaluated')->where('policy_fingerprint', config('recommendations.policy_fingerprint'));
+            ->where('evaluation_status', 'evaluated')->where('policy_fingerprint', $contract['fingerprint'])->whereIn('rule_code', $contract['rules']);
         $recommendations = $query->with(['forecast', 'action.owner', 'decisions' => fn ($query) => $query->latest('id')])->latest('id')->paginate(15)->withQueryString();
-        $recommendations->through(function (Recommendation $item) use ($user, $data, $readiness) {
-            $sourceCurrent = $data !== null && ($data['current']['id'] ?? null) === $item->forecast_id && $item->source_fingerprint === $item->forecast->dataset_fingerprint;
-            $reason = $readiness->reason($item, $data['current']['id'] ?? null);
+        $recommendations->through(function (Recommendation $item) use ($user, $data, $readiness, $contract) {
+            $sourceCurrent = ($data['current']['id'] ?? null) === $item->forecast_id && $item->source_fingerprint === $item->forecast->dataset_fingerprint;
+            $policyCurrent = $item->evaluation_status === 'evaluated' && $contract['fingerprint'] === $item->policy_fingerprint && in_array($item->rule_code, $contract['rules'], true);
+            $reason = $readiness->reason($item, $data['current']['id'] ?? null, $contract);
 
             return ['id' => $item->id, 'version' => $item->version, 'ruleCode' => $item->rule_code, 'title' => $item->title,
                 'subjectKey' => $item->subject_key,
                 'targetMonth' => $item->forecast->target_month->toDateString(), 'forecastId' => $item->forecast_id,
-                'priority' => $sourceCurrent ? $item->priority : null, 'message' => $sourceCurrent ? $item->message : null,
+                'policyCurrent' => $policyCurrent, 'priority' => $sourceCurrent && $policyCurrent ? $item->priority : null, 'message' => $sourceCurrent ? $item->message : null,
                 'evidence' => $sourceCurrent ? $item->evidence : null, 'sourceCurrent' => $sourceCurrent,
                 'decision' => $item->decision, 'evaluationStatus' => $item->evaluation_status,
                 'canDecide' => $reason === null && $user->can('decide', $item), 'blockedReason' => $reason,
@@ -59,10 +66,17 @@ class DecisionSupportController extends Controller
             'exploratoryHistory' => $information['exploratoryHistory'] ?? null,
             'conservationCatalogue' => $information['conservationCatalogue'] ?? null,
             'historicalRates' => $information['historicalRates'] ?? null,
-            'policyAvailable' => $readiness->policyAvailable(), 'recommendations' => $recommendations, 'owners' => $owners,
-            'counts' => ['evaluated' => $readiness->policyAvailable() ? (clone $current)->count() : 0,
-                'high' => $readiness->policyAvailable() ? (clone $current)->where('priority', 'high')->count() : 0,
-                'accepted' => $readiness->policyAvailable() ? (clone $current)->where('decision', 'accepted')->count() : 0],
+            'policyAvailable' => $available, 'recommendations' => $recommendations, 'owners' => $owners,
+            'buildingId' => $building?->id,
+            'evaluation' => ['available' => ($activation['state'] ?? null) === 'active' && ($information['comparison']['state'] ?? null) === 'available',
+                'tariffActive' => ($information['historicalRates'] ?? null) !== null && isset($activation['tariffs']['R1']),
+                'canEvaluate' => $building instanceof Building
+                && $user->hasRole(UserRole::Admin, UserRole::EnergyManager) && $user->canAccessModule('decision_support'),
+                'reason' => ($activation['state'] ?? null) === 'active' && ($information['comparison']['state'] ?? null) !== 'available'
+                    ? 'A current verified comparison is required.' : ($activation['reason'] ?? 'Select a building before evaluating.')],
+            'counts' => ['evaluated' => $available ? (clone $current)->count() : 0,
+                'high' => $available ? (clone $current)->where('priority', 'high')->count() : 0,
+                'accepted' => $available ? (clone $current)->where('decision', 'accepted')->count() : 0],
             'today' => now('Asia/Manila')->toDateString(), 'operationResult' => $request->session()->get('decisionResult'),
             'dssAccess' => ['configuration' => $user->hasRole(UserRole::Admin, UserRole::EnergyManager, UserRole::BudgetOfficer),
                 'billingEvidence' => $user->hasRole(UserRole::Admin, UserRole::EnergyManager) && $user->canAccessModule('verification_queue')],
@@ -76,5 +90,14 @@ class DecisionSupportController extends Controller
         $workflow->decide($recommendation, $user, $request->all());
 
         return back()->with('decisionResult', 'Decision recorded and audited. Acceptance creates one assigned action.');
+    }
+
+    public function evaluate(Request $request, Building $building, RecommendationEvaluator $evaluator): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $result = $evaluator->evaluate($building, $user);
+
+        return back()->with('decisionResult', $result['message']);
     }
 }

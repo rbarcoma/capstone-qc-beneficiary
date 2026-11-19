@@ -61,7 +61,7 @@ Every recommendation is **rule-based and explainable**: it displays the numbers 
 | R6 | Solar pre-assessment | Screening-level offset from irradiance, assumed capacity, performance ratio — **never** an engineering feasibility conclusion |
 | R7 | Data sufficiency | Notices on coverage, missing months, forecast confidence |
 
-**Bounded descriptive development authorized / actionable C5 still blocked:** the reviewed taxonomy is retained. R2/R7 information, R3/R4 exploratory arithmetic and the R5 review-only prototype (§5.5–5.7) are implemented under user development authorization, not official rule-policy approval. The R1 historical foundation (§5.8) and the configuration-review workflow with per-subject decisions (§5.9) record versions and approvals without activating policy. Proposal Table11/§10.3 lists seven rules but Figure5 labels six; legacy conditionals include invalid units/global history and are not policy. Numeric alert thresholds, actionable priorities and remaining operational contracts are unresolved; no actionable generator is implemented. Configurable thresholds remain Proposed. R1 still needs tariff/budget decisions.
+**Evaluation implemented / operational C5 still blocked:** R2/R7 information, R3/R4 exploratory arithmetic and the R5 review-only prototype (§5.5–5.7) are implemented under development authorization. Neither R1 historical evidence (§5.8) nor configuration approval (§5.9) activates policy. Proposal Table11/§10.3 lists seven rules but Figure5 labels six; legacy conditionals include invalid units/global history and are not policy. The application evaluator (§5.11) ships disabled. Operational thresholds, priorities and future tariff/budget decisions remain unresolved.
 
 ### 5.1 C5 decision matrix — for approval, not approved policy
 
@@ -226,11 +226,26 @@ Approving these options alone does not close C5: unresolved parameters/deferred 
 
 ### 5.10 Synthetic evaluator — isolated integration contract (2026-11-19)
 
-The evaluator exists under `tests/Support` only. Its guard requires console execution, `APP_ENV=testing`, configured and actual database `testing`, and a null starting policy fingerprint. Latest building-scoped fixture versions must be independently approved, hash-matched, source-current and effective for the current issued forecast’s target month. A later draft or revoked version does not cause fallback. Thresholds and priority come from the fixture rule payload.
+The synthetic evaluator lives under `tests/Support`; it is separate from the application evaluator below. Its guard requires console execution, `APP_ENV=testing`, configured and actual database `testing`, empty deployment activations, and a null starting policy fingerprint. Latest building-scoped fixture versions must be independently approved, hash-matched, source-current and effective for the current issued forecast’s target month. A later draft or revoked version does not cause fallback. Thresholds and priority come from the fixture rule payload.
 
 R1 uses forecast kWh × a Budget-confirmed energy-only fixture rate; R2 compares the current forecast and verified reference; R3/R4 use existing historical comparisons; R5 requires available system evidence and a separately reviewed case for the exact catalogue version. R6 uses explicit scenario inputs only; R7 returns the existing readiness notice even without an issued forecast. Neither creates a recommendation. The fixture compares a stored numeric measure to its supplied threshold; for R5 that measure is **presence of a matching reviewed case**, not a measure of savings or automatic eligibility.
 
-Recommendation identity uses the issued forecast, rule, hash of the exact reviewed dependencies and building/meter/catalogue subject. Re-evaluation preserves decisions. The test-only decision adapter recomputes the candidate, then scopes its fingerprint to the existing decision service call and clears it in `finally`. The normal application has no evaluator route, scheduled job or activated policy. City Hall must still settle applicable rules, sources, reference methods, values/operators, priorities, ownership/effective dates, re-evaluation cadence and activation authority before operational use.
+The fixture identity uses the issued forecast, rule, hash of the reviewed dependencies and subject. Its decision adapter recomputes the candidate, scopes its fingerprint to that service call and clears it in `finally`. Only an explicitly installed test adapter recognizes these fixture fingerprints.
+
+### 5.11 On-demand application evaluator — Existing and verified, no operational activation
+
+`POST /decision-support/{building}/evaluate` takes no policy or evidence inputs. Admin or Energy Manager with DSS and building access may request evaluation. The service locks the building, current inputs, actor and pinned versions; it requires a current issued forecast and matching verified comparison. Page loads do not evaluate. The button displays the server's outcome; only the existing Energy Manager decision workflow can create an action on acceptance.
+
+`config/recommendations.php` ships with `activations = []`. The legacy `policy_fingerprint` cannot authorize an application evaluation, decision or report. A deployment record must name one building, an inclusive target-month window, an authorization reference, executable rule codes and their exact `(kind, subject_key, id, version, approved_hash)` bindings (`hash` in the configuration). Exactly one window must match. Each binding must still be the latest independently approved, effective, content- and scope-current version. A new draft, revocation, stale case evidence, ambiguous window or invalid dependency withholds the whole activation. The derived fingerprint includes the evaluator version, building, window, authorization, sorted rules and bindings. Reordering equivalent bindings does not invalidate history.
+
+| Rule | Measure used for the configured comparison |
+| --- | --- |
+| R1 | Forecast kWh × the pinned Budget-confirmed PHP/kWh tariff, rounded half-up to centavos. Evidence identifies tariff basis and included/excluded charges. Cost roles only; not a budget-cycle warning. |
+| R2 | Signed forecast change from the latest verified reference, in kWh or percent. |
+| R3 / R4 | Existing exact prior-three-month comparisons: building consumption in kWh or percent; separate meter demand in kW or percent. Missing values and undefined percentages do not trigger. |
+| R5 | Presence of available system evidence and an independently reviewed case for that exact catalogue entry/version. The value `1` denotes presence, not estimated savings. |
+
+Only `conditional_proposal` rules contribute rows. Operator, threshold and priority come from the pinned rule, never the browser or a default. R6 remains an explicit scenario and R7 a read-time notice. Matching rows and audit records commit together; retrying the same forecast/rule/subject/activation preserves decisions and actions. Current counts and exports re-resolve the contract; historical rows remain identifiable after withdrawal. No scheduler, notification policy, migration, real-data import or operational approval is part of this integration.
 
 ## 6. Recommendation workflow (proposal §10.3 + Figure 5)
 
