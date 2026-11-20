@@ -64,6 +64,7 @@ type Props = {
     };
     selectedRecord: RecordRow | null;
     latestEvidenceVersion: number;
+    latestVerifiedPeriod: string | null;
     services: { id: number; meter_id: number; utility_account_id: number }[];
     accounts: { id: number; label: string }[];
     meters: { id: number; label: string }[];
@@ -79,26 +80,218 @@ type Props = {
 };
 const selectClass =
     'h-10 w-full rounded-[9px] border border-input bg-background px-3 text-sm';
-const fields: [string, string][] = [
-    ['period_start', 'Billing period start'],
-    ['period_end', 'Billing period end'],
-    ['bill_date', 'Bill date'],
-    ['source_document', 'Private source document reference'],
-    ['document_hash', 'Source document SHA-256'],
-    ['source_pages', 'Source PDF pages (comma-separated)'],
-    ['import_kwh', 'Import energy (kWh)'],
-    ['export_kwh', 'Export energy (kWh)'],
-    ['renewable_kwh', 'Renewable generation (kWh, optional)'],
-    ['own_use_kwh', 'Own-use energy (kWh, optional)'],
-    ['energy_amount_php', 'Total Energy Amount E (PHP)'],
-    ['export_credit_php', 'Signed export credit X (PHP)'],
-    ['other_charges_php', 'Separate deposits / non-service items O (PHP)'],
-    ['applied_credits_php', 'Separate applied account credits A (PHP)'],
-    ['current_charges_php', 'Charges for this billing period C (PHP)'],
-    ['previous_balance_php', 'Previous balance B (PHP)'],
-    ['total_due_php', 'Total Amount Due T (PHP)'],
-    ['revision_reason', 'Reason for this evidence version'],
+type FieldSpec = [string, string, string];
+const fields: FieldSpec[] = [
+    [
+        'period_start',
+        'Billing period start',
+        'First day of the billing period printed on the bill.',
+    ],
+    [
+        'period_end',
+        'Billing period end',
+        'Last day of the billing period. Its month must match the selected monthly record.',
+    ],
+    ['bill_date', 'Bill date', 'Date printed on the bill.'],
+    [
+        'source_document',
+        'Private source document reference',
+        'Reference only. Files are not uploaded, copied or publicly served.',
+    ],
+    [
+        'document_hash',
+        'Source document SHA-256',
+        '64 lowercase hexadecimal characters, for example a 64-character SHA-256 digest.',
+    ],
+    [
+        'source_pages',
+        'Source PDF pages (comma-separated)',
+        'Page numbers used as evidence, for example 1, 2, 3.',
+    ],
+    [
+        'import_kwh',
+        'Import energy (kWh)',
+        'Must equal the selected monthly record kWh.',
+    ],
+    [
+        'export_kwh',
+        'Export energy (kWh)',
+        'Printed export energy; enter 0 when the bill has none.',
+    ],
+    [
+        'renewable_kwh',
+        'Renewable generation (kWh, optional)',
+        'Optional printed renewable generation.',
+    ],
+    [
+        'own_use_kwh',
+        'Own-use energy (kWh, optional)',
+        'Optional printed own-use energy.',
+    ],
+    [
+        'energy_amount_php',
+        'Total Energy Amount E (PHP)',
+        'Exact cent amount, two decimal places.',
+    ],
+    [
+        'export_credit_php',
+        'Signed export credit X (PHP)',
+        'Zero or negative; a positive export credit is rejected.',
+    ],
+    [
+        'other_charges_php',
+        'Separate deposits / non-service items O (PHP)',
+        'Deposits and other non-service items, recorded separately from energy.',
+    ],
+    [
+        'applied_credits_php',
+        'Separate applied account credits A (PHP)',
+        'Zero or negative; a positive applied credit is rejected.',
+    ],
+    [
+        'current_charges_php',
+        'Charges for this billing period C (PHP)',
+        'Exact cent amount for this period only.',
+    ],
+    [
+        'previous_balance_php',
+        'Previous balance B (PHP)',
+        'Balance carried from the previous statement.',
+    ],
+    [
+        'total_due_php',
+        'Total Amount Due T (PHP)',
+        'Exact cent total printed on the statement.',
+    ],
+    [
+        'revision_reason',
+        'Reason for this evidence version',
+        'Explain what changed from the previous version and why.',
+    ],
 ];
+const fieldByKey = Object.fromEntries(
+    fields.map(([key, label, hint]) => [key, { label, hint }]),
+) as Record<string, { label: string; hint: string }>;
+const fieldGroups: { title: string; description: string; keys: string[] }[] = [
+    {
+        title: '1. Bill identity',
+        description:
+            'Match the printed bill header exactly. The period end month must match the selected monthly record.',
+        keys: [
+            'period_start',
+            'period_end',
+            'bill_date',
+            'source_document',
+            'document_hash',
+            'source_pages',
+        ],
+    },
+    {
+        title: '2. Meter readings',
+        description:
+            'Copy the printed readings. Import kWh must equal the monthly record before evidence can be verified.',
+        keys: ['import_kwh', 'export_kwh', 'renewable_kwh', 'own_use_kwh'],
+    },
+    {
+        title: '3. Charges and statement totals',
+        description:
+            'Enter exact cent amounts. Deposits and account credits stay separate from service charges.',
+        keys: [
+            'energy_amount_php',
+            'export_credit_php',
+            'other_charges_php',
+            'applied_credits_php',
+            'current_charges_php',
+            'previous_balance_php',
+            'total_due_php',
+        ],
+    },
+    {
+        title: '4. Revision note',
+        description:
+            'Required for every version. Explain what changed and why the earlier version is retained.',
+        keys: ['revision_reason'],
+    },
+];
+const moneyFields = [
+    'energy_amount_php',
+    'export_credit_php',
+    'other_charges_php',
+    'applied_credits_php',
+    'current_charges_php',
+    'previous_balance_php',
+    'total_due_php',
+] as const;
+type MoneyField = (typeof moneyFields)[number];
+const groupedFields: MoneyField[] = [
+    'energy_amount_php',
+    'export_credit_php',
+    'other_charges_php',
+    'applied_credits_php',
+];
+const categoryLabels: Record<string, string> = {
+    energy: 'Energy charge',
+    demand: 'Demand charge',
+    fixed: 'Fixed charge',
+    tax: 'Tax',
+    embedded_adjustment: 'Embedded adjustment',
+    export_credit: 'Export credit',
+    deposit: 'Deposit / non-service item',
+    account_credit: 'Applied account credit',
+    unclassified: 'Unclassified — must be reclassified',
+};
+const basisLabels: Record<string, string> = {
+    kWh: 'kWh',
+    kW: 'kW',
+    customer_month: 'Customer-month',
+    PHP: 'PHP',
+    percent: 'Percent',
+    other: 'Other',
+};
+const verificationLabels: Record<string, string> = {
+    verified: 'Verified',
+    draft: 'Draft — awaiting independent verification',
+};
+const sourceStateLabels: Record<string, string> = {
+    current: 'Current source',
+    monthly_record_unverified: 'Monthly record is not verified yet',
+    source_changed: 'Source changed — new evidence required',
+    service_mapping_unavailable: 'Service association unavailable',
+    billing_period_mismatch: 'Billing period does not match the monthly record',
+    import_energy_mismatch: 'Import kWh does not match the monthly record',
+    synthetic_evidence_excluded:
+        'Synthetic evidence is excluded outside the isolated testing database',
+    record_missing: 'Monthly record missing',
+};
+const reconciliationLabels: Record<string, string> = {
+    missing_financial_inputs: 'All statement totals are required',
+    unreconciled_statement: 'Current-period or statement residual is not zero',
+    invalid_credit_basis: 'Export or applied credits use an invalid basis',
+    component_evidence_missing: 'At least one classified component is required',
+    unclassified_component: 'Every component must have a classification',
+    component_source_missing:
+        'Each component page must be listed in the source pages',
+    invalid_component_hierarchy:
+        'A parent subtotal must appear before and include its children',
+    unreconciled_subtotal: 'A subtotal does not equal the sum of its children',
+    unreconciled_components:
+        'Component groups do not equal the statement totals',
+};
+function toCents(value: string | null | undefined): bigint | null {
+    const trimmed = (value ?? '').trim();
+    if (!/^-?\d{1,18}(\.\d{1,2})?$/.test(trimmed)) return null;
+    const negative = trimmed.startsWith('-');
+    const [whole, fraction = ''] = (
+        negative ? trimmed.slice(1) : trimmed
+    ).split('.');
+    const cents = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
+    return negative ? -cents : cents;
+}
+function formatCents(value: bigint): string {
+    const negative = value < 0n;
+    const absolute = negative ? -value : value;
+    return `${negative ? '-' : ''}${absolute / 100n}.${String(absolute % 100n).padStart(2, '0')}`;
+}
 const blankComponent = (position: number): Component => ({
     position,
     parent_position: '',
@@ -111,6 +304,140 @@ const blankComponent = (position: number): Component => ({
     amount_php: '',
     source_page: '',
 });
+
+function ReconciliationPreview({
+    values,
+    components,
+}: {
+    values: Record<string, string>;
+    components: Component[];
+}) {
+    const amounts = Object.fromEntries(
+        moneyFields.map((field) => [field, toCents(values[field])]),
+    ) as Record<MoneyField, bigint | null>;
+    const missing = moneyFields.filter((field) => amounts[field] === null);
+    const readings = [values.import_kwh, values.export_kwh].map((value) =>
+        (value ?? '').trim(),
+    );
+    const readingsValid = readings.every((value) =>
+        /^\d{1,12}(\.\d{1,3})?$/.test(value),
+    );
+    if (missing.length > 0 || !readingsValid) {
+        return (
+            <div className="rounded-[9px] bg-secondary p-4" aria-live="polite">
+                <p className="font-semibold">
+                    Reconciliation preview{' '}
+                    <span className="font-normal text-muted-foreground">
+                        (not authoritative)
+                    </span>
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                    Enter all statement totals plus valid import and export kWh
+                    to preview reconciliation.
+                </p>
+            </div>
+        );
+    }
+    const [
+        energy,
+        exportCredit,
+        otherCharges,
+        appliedCredits,
+        currentCharges,
+        previousBalance,
+        totalDue,
+    ] = moneyFields.map((field) => amounts[field] as bigint);
+    const expected = energy + exportCredit + otherCharges + appliedCredits;
+    const currentResidual = currentCharges - expected;
+    const statementResidual = totalDue - previousBalance - currentCharges;
+    const groups: Record<string, bigint> = Object.fromEntries(
+        groupedFields.map((field) => [field, 0n]),
+    );
+    let componentIssue: string | null = null;
+    for (const component of components) {
+        if (!component.category || component.category === 'unclassified') {
+            componentIssue =
+                'Classify every component before the server can reconcile.';
+            break;
+        }
+        const amount = toCents(component.amount_php);
+        if (amount === null) {
+            componentIssue =
+                'Every component needs a two-decimal amount before the server can reconcile.';
+            break;
+        }
+        if (component.is_subtotal) continue;
+        const field: MoneyField =
+            component.category === 'export_credit'
+                ? 'export_credit_php'
+                : component.category === 'deposit'
+                  ? 'other_charges_php'
+                  : component.category === 'account_credit'
+                    ? 'applied_credits_php'
+                    : 'energy_amount_php';
+        groups[field] += amount;
+    }
+    const groupsMatch =
+        componentIssue === null &&
+        groupedFields.every((field) => groups[field] === amounts[field]);
+    const creditBasis =
+        exportCredit > 0n ||
+        appliedCredits > 0n ||
+        (Number(readings[1]) === 0 && exportCredit !== 0n);
+    const balanced =
+        currentResidual === 0n &&
+        statementResidual === 0n &&
+        groupsMatch &&
+        !creditBasis;
+
+    return (
+        <div
+            className="space-y-2 rounded-[9px] bg-secondary p-4"
+            aria-live="polite"
+        >
+            <p className="font-semibold">
+                Reconciliation preview{' '}
+                <span className="font-normal text-muted-foreground">
+                    (not authoritative)
+                </span>
+            </p>
+            <ul className="space-y-1">
+                <li>
+                    Current-period residual:{' '}
+                    <span className="font-mono">
+                        {formatCents(currentResidual)}
+                    </span>{' '}
+                    {currentResidual === 0n ? '— balanced' : '— must be 0.00'}
+                </li>
+                <li>
+                    Statement residual:{' '}
+                    <span className="font-mono">
+                        {formatCents(statementResidual)}
+                    </span>{' '}
+                    {statementResidual === 0n ? '— balanced' : '— must be 0.00'}
+                </li>
+                <li>
+                    Component groups:{' '}
+                    {componentIssue ??
+                        (groupsMatch
+                            ? 'match the statement totals'
+                            : `do not match yet (energy ${formatCents(groups.energy_amount_php)}, export ${formatCents(groups.export_credit_php)}, other ${formatCents(groups.other_charges_php)}, credits ${formatCents(groups.applied_credits_php)})`)}
+                </li>
+                <li>
+                    Credit basis:{' '}
+                    {creditBasis
+                        ? 'invalid — export and applied credits must be zero or negative'
+                        : 'valid'}
+                </li>
+            </ul>
+            <p className={balanced ? 'text-primary' : 'text-muted-foreground'}>
+                {balanced
+                    ? 'Preview: residuals and component groups balance. The server still checks page references, subtotal hierarchy and saved components, and performs the authoritative exact-cent reconciliation.'
+                    : 'Preview is not balanced yet. The server re-reads the saved components and performs the authoritative exact-cent reconciliation.'}
+            </p>
+        </div>
+    );
+}
 
 function EvidenceForm({ props }: { props: Props }) {
     const record = props.selectedRecord;
@@ -133,6 +460,62 @@ function EvidenceForm({ props }: { props: Props }) {
                 i === index ? { ...component, ...changes } : component,
             ),
         );
+    const renderField = (key: string) => {
+        const { label, hint } = fieldByKey[key];
+        const hintId = `evidence-${key}-hint`;
+        return (
+            <div key={key} className="min-w-0">
+                <Label htmlFor={`evidence-${key}`}>{label}</Label>
+                {key === 'revision_reason' ? (
+                    <textarea
+                        id={`evidence-${key}`}
+                        className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
+                        value={form.data.values[key]}
+                        onChange={(event) =>
+                            form.setData('values', {
+                                ...form.data.values,
+                                [key]: event.target.value,
+                            })
+                        }
+                        aria-describedby={hintId}
+                        required
+                    />
+                ) : (
+                    <Input
+                        id={`evidence-${key}`}
+                        type={
+                            [
+                                'period_start',
+                                'period_end',
+                                'bill_date',
+                            ].includes(key)
+                                ? 'date'
+                                : 'text'
+                        }
+                        value={form.data.values[key]}
+                        onChange={(event) =>
+                            form.setData('values', {
+                                ...form.data.values,
+                                [key]: event.target.value,
+                            })
+                        }
+                        inputMode={
+                            key.endsWith('_php') || key.endsWith('_kwh')
+                                ? 'decimal'
+                                : 'text'
+                        }
+                        aria-describedby={hintId}
+                    />
+                )}
+                <p
+                    id={hintId}
+                    className="mt-1 text-[11px] text-muted-foreground"
+                >
+                    {hint}
+                </p>
+            </div>
+        );
+    };
     return (
         <form
             className="space-y-4"
@@ -232,6 +615,7 @@ function EvidenceForm({ props }: { props: Props }) {
                     onChange={(event) =>
                         form.setData('utility_service_id', event.target.value)
                     }
+                    aria-describedby="evidence-service-hint"
                     required
                 >
                     <option value="">Choose a documented association</option>
@@ -247,6 +631,24 @@ function EvidenceForm({ props }: { props: Props }) {
                             </option>
                         ))}
                 </select>
+                <p
+                    id="evidence-service-hint"
+                    className="mt-1 text-[11px] text-muted-foreground"
+                >
+                    The service must already be associated with the selected
+                    record's meter. Account references stay private.
+                </p>
+                {record &&
+                    props.services.filter(
+                        (service) => service.meter_id === record.meter_id,
+                    ).length === 0 && (
+                        <p className="mt-2 rounded-[9px] bg-secondary p-3 text-muted-foreground">
+                            This meter has no documented service association
+                            yet. An administrator must add one under “Admin: add
+                            an explicit account/service association” before
+                            evidence can be saved.
+                        </p>
+                    )}
             </div>
             <div>
                 <Label htmlFor="evidence-origin">Evidence origin</Label>
@@ -257,6 +659,7 @@ function EvidenceForm({ props }: { props: Props }) {
                     onChange={(event) =>
                         form.setData('origin', event.target.value)
                     }
+                    aria-describedby="evidence-origin-hint"
                     required
                 >
                     <option value="">Choose source type</option>
@@ -269,57 +672,44 @@ function EvidenceForm({ props }: { props: Props }) {
                         </option>
                     )}
                 </select>
+                <p
+                    id="evidence-origin-hint"
+                    className="mt-1 text-[11px] text-muted-foreground"
+                >
+                    Operational sources are the only sources used for official
+                    analytics. Synthetic fixtures are isolated to testing.
+                </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-                {fields.map(([key, label]) => (
-                    <div key={key} className="min-w-0">
-                        <Label htmlFor={`evidence-${key}`}>{label}</Label>
-                        {key === 'revision_reason' ? (
-                            <textarea
-                                id={`evidence-${key}`}
-                                className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
-                                value={form.data.values[key]}
-                                onChange={(event) =>
-                                    form.setData('values', {
-                                        ...form.data.values,
-                                        [key]: event.target.value,
-                                    })
-                                }
-                                required
-                            />
-                        ) : (
-                            <Input
-                                id={`evidence-${key}`}
-                                type={
-                                    [
-                                        'period_start',
-                                        'period_end',
-                                        'bill_date',
-                                    ].includes(key)
-                                        ? 'date'
-                                        : 'text'
-                                }
-                                value={form.data.values[key]}
-                                onChange={(event) =>
-                                    form.setData('values', {
-                                        ...form.data.values,
-                                        [key]: event.target.value,
-                                    })
-                                }
-                                inputMode={
-                                    key.endsWith('_php') || key.endsWith('_kwh')
-                                        ? 'decimal'
-                                        : 'text'
-                                }
-                            />
-                        )}
+            {fieldGroups.map((group) => (
+                <fieldset
+                    key={group.title}
+                    className="space-y-3 rounded-[9px] border p-4"
+                >
+                    <legend className="px-1 font-semibold">
+                        {group.title}
+                    </legend>
+                    <p className="text-[11px] text-muted-foreground">
+                        {group.description}
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {group.keys.map(renderField)}
                     </div>
-                ))}
-            </div>
+                </fieldset>
+            ))}
+            <ReconciliationPreview
+                values={form.data.values}
+                components={form.data.components}
+            />
             <fieldset className="space-y-4">
                 <legend className="font-semibold">
-                    Classified bill components — subtotals are not counted twice
+                    5. Classified bill components — subtotals are not counted
+                    twice
                 </legend>
+                <p className="text-[11px] text-muted-foreground">
+                    Record the printed bill components. Groups must equal the
+                    statement totals; a parent subtotal must include its
+                    children.
+                </p>
                 {form.data.components.map((component, index) => (
                     <div
                         key={index}
@@ -348,7 +738,9 @@ function EvidenceForm({ props }: { props: Props }) {
                                         Choose classification
                                     </option>
                                     {props.categories.map((value) => (
-                                        <option key={value}>{value}</option>
+                                        <option key={value} value={value}>
+                                            {categoryLabels[value] ?? value}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -377,7 +769,9 @@ function EvidenceForm({ props }: { props: Props }) {
                                         'percent',
                                         'other',
                                     ].map((value) => (
-                                        <option key={value}>{value}</option>
+                                        <option key={value} value={value}>
+                                            {basisLabels[value] ?? value}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -417,6 +811,11 @@ function EvidenceForm({ props }: { props: Props }) {
                                 </div>
                             ))}
                         </div>
+                        <p className="text-[11px] text-muted-foreground">
+                            Amounts use two decimals; enter credits as negative
+                            values. Every source page must also appear in the
+                            source pages field above.
+                        </p>
                         <label className="flex items-start gap-2">
                             <input
                                 type="checkbox"
@@ -506,9 +905,13 @@ function Verify({ bill }: { bill: Bill }) {
                 Evidence #{bill.id} · version {bill.version} · record version{' '}
                 {bill.recordVersion}
             </h3>
-            <Badge variant="secondary">{bill.status}</Badge>
+            <Badge variant="secondary">
+                {verificationLabels[bill.status] ?? bill.status}
+            </Badge>
             <p>
-                Source: {bill.sourceState}. Author #{bill.authorId}; reviewer{' '}
+                Source:{' '}
+                {sourceStateLabels[bill.sourceState] ?? bill.sourceState}.
+                Author #{bill.authorId}; reviewer{' '}
                 {bill.reviewerId === null
                     ? 'not yet verified'
                     : `#${bill.reviewerId}`}
@@ -518,7 +921,10 @@ function Verify({ bill }: { bill: Bill }) {
                 Reconciliation:{' '}
                 {bill.reconciliation.valid
                     ? 'Exact cent reconciliation passed'
-                    : bill.reconciliation.reason}
+                    : bill.reconciliation.reason === null
+                      ? 'No reconciliation result recorded'
+                      : (reconciliationLabels[bill.reconciliation.reason] ??
+                        bill.reconciliation.reason)}
                 . Current-period residual:{' '}
                 {bill.reconciliation.currentResidual ?? 'unavailable'};
                 statement residual:{' '}
@@ -526,7 +932,7 @@ function Verify({ bill }: { bill: Bill }) {
             </p>
             <details className="rounded-[9px] bg-secondary p-3">
                 <summary className="cursor-pointer text-primary">
-                    Review all source values and components
+                    Technical details (all source values and components)
                 </summary>
                 <pre className="mt-3 text-[11px] break-all whitespace-pre-wrap">
                     {JSON.stringify(bill.input, null, 2)}
@@ -743,7 +1149,7 @@ export default function BillingEvidence() {
                 <EnergyFilters
                     buildings={props.buildings}
                     selected={props.selectedBuildingCode}
-                    latest={null}
+                    latest={props.latestVerifiedPeriod}
                     onChange={(building) =>
                         router.get(BillingEvidenceController.index.url(), {
                             building,
@@ -764,16 +1170,29 @@ export default function BillingEvidence() {
                                 record: event.target.value,
                             })
                         }
+                        aria-describedby="evidence-record-hint"
                     >
                         <option value="">Choose record</option>
                         {props.records.data.map((record) => (
                             <option key={record.id} value={record.id}>
                                 {record.month.slice(0, 7)} · meter #
                                 {record.meter_id} · record #{record.id} v
-                                {record.version} · {record.verification_status}
+                                {record.version} ·{' '}
+                                {verificationLabels[
+                                    record.verification_status
+                                ] ?? record.verification_status}
                             </option>
                         ))}
                     </select>
+                    <p
+                        id="evidence-record-hint"
+                        className="mt-1 text-[11px] text-muted-foreground"
+                    >
+                        Verified records are selected first. Evidence can be
+                        drafted for an unverified record, but independent
+                        verification requires the monthly record to be verified
+                        first.
+                    </p>
                     <div className="mt-2 flex gap-3">
                         {props.records.prev_page_url && (
                             <Link
@@ -793,6 +1212,19 @@ export default function BillingEvidence() {
                         )}
                     </div>
                 </div>
+                {props.selectedRecord &&
+                    props.selectedRecord.verification_status !== 'verified' && (
+                        <EnergyNotice
+                            warning
+                            title="Selected monthly record is not verified"
+                        >
+                            Evidence can be saved as a draft, but it cannot pass
+                            independent verification while the monthly record
+                            remains unverified. Ask a reviewer to verify the
+                            monthly record in Data Management first, or select a
+                            verified record.
+                        </EnergyNotice>
+                    )}
                 {props.result && (
                     <p role="status" className="text-sm text-primary">
                         {props.result}

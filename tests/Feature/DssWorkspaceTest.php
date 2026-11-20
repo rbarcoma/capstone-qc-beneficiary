@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\BillingEvidence;
 use App\Models\DssConfiguration;
 use App\Models\Meter;
+use App\Models\MonthlyRecord;
 use App\Models\Recommendation;
 use App\Models\RecommendationDecision;
 use App\Models\User;
@@ -76,6 +77,34 @@ class DssWorkspaceTest extends TestCase
         $this->assertSame($before, $f['record']->fresh()->getRawOriginal());
         $this->get('/billing-evidence?building='.$f['building']->code.'&record='.$f['record']->id)->assertInertia(fn (Assert $page) => $page
             ->component('billing-evidence')->has('evidence.data', 2)->where('latestEvidenceVersion', 2)->where('canMap', true));
+    }
+
+    public function test_billing_evidence_and_configuration_show_the_latest_verified_period_and_prefer_verified_records(): void
+    {
+        $f = $this->billingFixture();
+        MonthlyRecord::create(['meter_id' => $f['meter']->id, 'month' => '2025-06-01', 'kwh' => '120.000', 'cost_php' => '900.00',
+            'source' => 'manual', 'verification_status' => 'draft', 'uploaded_by' => $f['author']->id, 'last_edited_by' => $f['author']->id]);
+
+        $this->actingAs($f['author'])->get('/billing-evidence?building='.$f['building']->code)->assertInertia(fn (Assert $page) => $page
+            ->component('billing-evidence')->where('latestVerifiedPeriod', '2025-05-01')
+            ->where('selectedRecord.id', $f['record']->id)->where('selectedRecord.verification_status', 'verified'));
+
+        $this->actingAs($f['author'])->get('/decision-support/configuration?building='.$f['building']->code.'&kind=rule&subject=R2')
+            ->assertInertia(fn (Assert $page) => $page->component('dss-configuration')->where('latestVerifiedPeriod', '2025-05-01'));
+    }
+
+    public function test_only_the_author_can_submit_a_configuration_draft(): void
+    {
+        $f = $this->billingFixture();
+        $this->actingAs($f['author'])->post('/decision-support/configuration/'.$f['building']->id, $this->proposal())->assertSessionHasNoErrors();
+        $item = DssConfiguration::sole();
+
+        $this->transition($item, $f['reviewer'], 'submit')->assertSessionHasErrors('configuration');
+        $this->assertSame('draft', $item->fresh()->status);
+        $this->assertDatabaseCount('dss_configuration_events', 1);
+
+        $this->transition($item, $f['author'], 'submit')->assertSessionHasNoErrors();
+        $this->assertSame('submitted', $item->fresh()->status);
     }
 
     public function test_service_association_is_explicit_admin_only_audited_and_preserves_the_legacy_reference(): void

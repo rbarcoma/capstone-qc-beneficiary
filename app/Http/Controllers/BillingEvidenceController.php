@@ -42,7 +42,13 @@ class BillingEvidenceController extends Controller
         abort_unless($building || $code === null, 404);
         $meters = Meter::where('building_id', $building?->id)->orderBy('id')->get();
         $records = MonthlyRecord::whereIn('meter_id', $meters->modelKeys())->orderByDesc('month')->orderByDesc('id')->paginate(20)->withQueryString();
-        $selected = $request->query('record', $records->first()?->id);
+        $selected = $request->query('record');
+        if ($selected === null) {
+            $selected = $records->getCollection()->first(fn (MonthlyRecord $record) => $record->verification_status === 'verified')?->id;
+            if ($selected === null) {
+                $selected = $records->getCollection()->first()?->id;
+            }
+        }
         $record = $selected ? MonthlyRecord::whereIn('meter_id', $meters->modelKeys())->whereKey($selected)->firstOrFail() : null;
         $bills = BillingEvidence::where('monthly_record_id', $record?->id)->latest('version')->paginate(10, ['*'], 'evidence_page')->withQueryString();
         $bills->through(function (BillingEvidence $bill) use ($workflow, $record, $actor) {
@@ -61,6 +67,7 @@ class BillingEvidenceController extends Controller
             'buildings' => $buildings->map(fn ($b) => $b->only(['id', 'code', 'name'])), 'selectedBuildingCode' => $building?->code,
             'records' => $records->through(fn (MonthlyRecord $row) => $row->only(['id', 'meter_id', 'month', 'kwh', 'version', 'verification_status'])),
             'selectedRecord' => $record?->only(['id', 'meter_id', 'month', 'kwh', 'version', 'verification_status']),
+            'latestVerifiedPeriod' => MonthlyRecord::whereIn('meter_id', $meters->modelKeys())->verified()->max('month'),
             'latestEvidenceVersion' => (int) BillingEvidence::where('monthly_record_id', $record?->id)->max('version'),
             'services' => UtilityService::whereIn('meter_id', $meters->modelKeys())->orderBy('id')->get()->map(fn ($s) => $s->only(['id', 'meter_id', 'utility_account_id'])),
             'accounts' => UtilityAccount::orderBy('id')->get()->map(fn ($a) => ['id' => $a->id, 'label' => $a->provider.' · account #'.$a->id]),

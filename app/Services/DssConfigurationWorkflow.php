@@ -119,6 +119,9 @@ class DssConfigurationWorkflow
                 if ($current->status !== 'draft') {
                     $this->fail('Only a draft can be submitted.');
                 }
+                if ($current->author_id !== $actor->id) {
+                    $this->fail('Only the author may submit this draft for review.');
+                }
                 $this->complete($current);
                 $current->status = 'submitted';
             } elseif ($op === 'confirm_source') {

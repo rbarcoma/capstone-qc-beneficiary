@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Building;
 use App\Models\DssConfiguration;
 use App\Models\DssConfigurationEvent;
+use App\Models\MonthlyRecord;
 use App\Models\User;
 use App\Services\DssConfigurationWorkflow;
 use Illuminate\Http\RedirectResponse;
@@ -41,7 +42,7 @@ class DssConfigurationController extends Controller
                     $operations[] = 'confirm_source';
                 }
             } else {
-                if ($fresh && $latestVersion && $item->status === 'draft') {
+                if ($fresh && $latestVersion && $item->author_id === $actor->id && $item->status === 'draft') {
                     $operations[] = 'submit';
                 }
                 if ($fresh && $latestVersion && $notOwn && $item->status === 'submitted') {
@@ -65,6 +66,9 @@ class DssConfigurationController extends Controller
             'buildings' => $buildings->map(fn ($b) => $b->only(['id', 'code', 'name'])), 'selectedBuildingCode' => $building?->code,
             'buildingId' => $building?->id, 'kind' => $kind, 'subject' => $subject, 'previousVersion' => $latest,
             'items' => $items, 'canDraft' => ! $budget, 'measures' => $workflow::MEASURES,
+            'latestVerifiedPeriod' => MonthlyRecord::query()
+                ->whereHas('meter', fn ($query) => $query->where('building_id', $building?->id))
+                ->verified()->max('month'),
             'catalogues' => $kind === 'review' ? DssConfiguration::where('building_id', $building?->id)->where('kind', 'catalogue')
                 ->where('subject_key', $subject)->where('status', 'approved')->get()->map(fn ($item) => ['id' => $item->id, 'version' => $item->version]) : [],
             'result' => $request->session()->get('configurationResult'), 'runtimeActive' => false,

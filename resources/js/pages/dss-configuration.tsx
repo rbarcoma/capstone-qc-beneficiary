@@ -49,6 +49,7 @@ type Props = {
     previousVersion: number;
     canDraft: boolean;
     measures: Record<string, string[]>;
+    latestVerifiedPeriod: string | null;
     catalogues: { id: number; version: number }[];
     items: {
         data: Item[];
@@ -94,6 +95,64 @@ const fields: Record<Kind, [string, string][]> = {
         ['responsible_office', 'Proposed responsible office'],
     ],
 };
+const payloadLabels: Record<string, string> = {
+    title: 'Title',
+    rationale: 'Rationale and outstanding decisions',
+    rate_php_per_kwh: 'Proposed rate (PHP per import kWh)',
+    source_reference: 'Tariff source reference',
+    source_document_hash: 'Source document SHA-256',
+    included_charges: 'Charges included in the proposal',
+    excluded_charges: 'Charges excluded from the proposal',
+    threshold: 'Proposed threshold (measure units)',
+    reference_method: 'Reference method, units and missing-data treatment',
+    conditions: 'Proposed conditions and required evidence',
+    limitations: 'Limitations',
+    responsible_office: 'Proposed responsible office',
+    scope: 'Specific building, equipment and period scope',
+    operational_evidence:
+        'Operational evidence references and unresolved requirements',
+    tariff_basis: 'Tariff basis',
+    mode: 'Rule treatment',
+    measure: 'Measure',
+    operator: 'Comparison operator',
+    priority: 'Priority',
+    catalogue_configuration_id: 'Reviewed catalogue version',
+};
+const fieldHints: Record<string, string> = {
+    source_document_hash:
+        '64 lowercase hexadecimal characters (SHA-256). Required for the source binding.',
+    rate_php_per_kwh:
+        'Up to 8 decimal places. The rate is stored exactly as entered and never copied into future rates.',
+    threshold:
+        'Up to 6 decimal places. The unit follows the selected rule measure.',
+    valid_from:
+        'First billing month this proposal would apply to. Not an activation.',
+    valid_to: 'Last billing month. Leave blank for open-ended.',
+    operational_evidence:
+        'Cite only operational sources. Synthetic fixtures must be labelled and stay isolated.',
+};
+const statusLabels: Record<string, string> = {
+    draft: 'Draft',
+    submitted: 'Submitted for review',
+    approved: 'Approved review — inactive',
+    rejected: 'Rejected',
+    revoked: 'Approval revoked',
+};
+const eventLabels: Record<string, string> = {
+    drafted: 'Draft created',
+    submitted: 'Submitted for independent review',
+    approved: 'Approved review (inactive)',
+    rejected: 'Rejected',
+    source_confirmed: 'Tariff source confirmed',
+    revoked: 'Approval revoked',
+};
+const operationLabels: Record<string, string> = {
+    submit: 'Submit for independent review',
+    confirm_source: 'Confirm tariff source only',
+    approve: 'Approve review — keep inactive',
+    reject: 'Reject version',
+    revoke: 'Revoke review approval',
+};
 
 function Review({ item }: { item: Item }) {
     const form = useForm({ reference: '' });
@@ -108,7 +167,8 @@ function Review({ item }: { item: Item }) {
                     {String(item.payload.title)}
                 </h3>
                 <Badge variant="secondary">
-                    {item.status} · operationally inactive
+                    {statusLabels[item.status] ?? item.status} · operationally
+                    inactive
                 </Badge>
             </div>
             <p>
@@ -124,8 +184,9 @@ function Review({ item }: { item: Item }) {
                 Source/scope:{' '}
                 {item.sourceCurrent
                     ? 'current'
-                    : 'changed — new review required'}
-                . Review approval is not City Hall policy activation.
+                    : 'changed — a new review is required'}
+                . Review approval is not City Hall policy activation, and only
+                the author can submit this draft.
             </p>
             {item.sourceConfirmation && (
                 <p>
@@ -135,13 +196,14 @@ function Review({ item }: { item: Item }) {
             )}
             <details className="rounded-[9px] bg-secondary p-3">
                 <summary className="cursor-pointer font-semibold text-primary">
-                    Version {item.version} content and provenance
+                    Technical details — version {item.version} content and
+                    provenance
                 </summary>
                 <dl className="mt-3 space-y-2">
                     {Object.entries(item.payload).map(([key, value]) => (
                         <div key={key} className="break-words">
                             <dt className="font-semibold">
-                                {key.replaceAll('_', ' ')}
+                                {payloadLabels[key] ?? key.replaceAll('_', ' ')}
                             </dt>
                             <dd>
                                 {value === null || value === ''
@@ -212,17 +274,7 @@ function Review({ item }: { item: Item }) {
                                     );
                                 }}
                             >
-                                {
-                                    {
-                                        submit: 'Submit for independent review',
-                                        confirm_source:
-                                            'Confirm tariff source only',
-                                        approve:
-                                            'Approve review — keep inactive',
-                                        reject: 'Reject version',
-                                        revoke: 'Revoke review approval',
-                                    }[operation]
-                                }
+                                {operationLabels[operation] ?? operation}
                             </Button>
                         ))}
                     </div>
@@ -230,7 +282,8 @@ function Review({ item }: { item: Item }) {
             ) : (
                 <p>
                     No review operation is available to your account for this
-                    version. Authors cannot approve their own versions.
+                    version. Submitting is limited to the author, and authors
+                    cannot approve their own versions.
                 </p>
             )}
             <details>
@@ -240,8 +293,9 @@ function Review({ item }: { item: Item }) {
                 <ol className="mt-2 space-y-2">
                     {item.history.map((entry) => (
                         <li key={entry.state_version} className="break-words">
-                            State version {entry.state_version} · {entry.event}{' '}
-                            · actor #{entry.actor_id}: {entry.reference}
+                            State version {entry.state_version} ·{' '}
+                            {eventLabels[entry.event] ?? entry.event} · actor #
+                            {entry.actor_id}: {entry.reference}
                         </li>
                     ))}
                 </ol>
@@ -321,127 +375,177 @@ function Draft({ props }: { props: Props }) {
                 });
             }}
         >
-            <div>
-                <Label htmlFor="draft-title">Title</Label>
-                <Input
-                    id="draft-title"
-                    value={form.data.payload.title}
-                    onChange={(event) => set('title', event.target.value)}
-                    required
-                    maxLength={255}
-                />
-            </div>
-            <div>
-                <Label htmlFor="draft-rationale">
-                    Rationale and outstanding decisions
-                </Label>
-                <textarea
-                    id="draft-rationale"
-                    className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
-                    value={form.data.payload.rationale}
-                    onChange={(event) => set('rationale', event.target.value)}
-                    required
-                    maxLength={4000}
-                />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-                {(['valid_from', 'valid_to'] as const).map((key) => (
-                    <div key={key}>
-                        <Label htmlFor={`draft-${key}`}>
-                            {key === 'valid_from'
-                                ? 'Effective billing month from'
-                                : 'Effective billing month through'}
-                        </Label>
-                        <Input
-                            id={`draft-${key}`}
-                            type="month"
-                            value={form.data[key]}
-                            onChange={(event) =>
-                                form.setData(key, event.target.value)
-                            }
-                        />
-                    </div>
-                ))}
-            </div>
-            {kind === 'tariff' &&
-                select('tariff_basis', 'Tariff proposal basis', [
-                    ['energy_only', 'Specified energy components only'],
-                    [
-                        'blended_planning',
-                        'Explicit blended planning assumption — not a utility tariff',
-                    ],
-                ])}
-            {kind === 'rule' && (
-                <>
-                    {select('mode', 'Proposed rule treatment', [
-                        ['information_only', 'Information only'],
+            <fieldset className="space-y-3 rounded-[9px] border p-4">
+                <legend className="px-1 font-semibold">
+                    1. Proposal identity
+                </legend>
+                <div>
+                    <Label htmlFor="draft-title">Title</Label>
+                    <Input
+                        id="draft-title"
+                        value={form.data.payload.title}
+                        onChange={(event) => set('title', event.target.value)}
+                        required
+                        maxLength={255}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="draft-rationale">
+                        Rationale and outstanding decisions
+                    </Label>
+                    <textarea
+                        id="draft-rationale"
+                        className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
+                        value={form.data.payload.rationale}
+                        onChange={(event) =>
+                            set('rationale', event.target.value)
+                        }
+                        required
+                        maxLength={4000}
+                    />
+                </div>
+            </fieldset>
+            <fieldset className="space-y-3 rounded-[9px] border p-4">
+                <legend className="px-1 font-semibold">
+                    2. Effective billing months
+                </legend>
+                <p className="text-[11px] text-muted-foreground">
+                    Proposals are review records, not operational policy. Leave
+                    a month blank when it is not yet decided.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {(['valid_from', 'valid_to'] as const).map((key) => (
+                        <div key={key}>
+                            <Label htmlFor={`draft-${key}`}>
+                                {key === 'valid_from'
+                                    ? 'Effective billing month from'
+                                    : 'Effective billing month through'}
+                            </Label>
+                            <Input
+                                id={`draft-${key}`}
+                                type="month"
+                                value={form.data[key]}
+                                onChange={(event) =>
+                                    form.setData(key, event.target.value)
+                                }
+                                aria-describedby={`draft-${key}-hint`}
+                            />
+                            <p
+                                id={`draft-${key}-hint`}
+                                className="mt-1 text-[11px] text-muted-foreground"
+                            >
+                                {fieldHints[key]}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </fieldset>
+            <fieldset className="space-y-3 rounded-[9px] border p-4">
+                <legend className="px-1 font-semibold">
+                    3. Proposal values
+                </legend>
+                {kind === 'tariff' &&
+                    select('tariff_basis', 'Tariff proposal basis', [
+                        ['energy_only', 'Specified energy components only'],
                         [
-                            'conditional_proposal',
-                            'Conditional policy proposal — disabled',
+                            'blended_planning',
+                            'Explicit blended planning assumption — not a utility tariff',
                         ],
                     ])}
-                    {select(
-                        'measure',
-                        'Rule measure',
-                        (measures[subject] ?? []).map((value) => [
-                            value,
-                            value.replaceAll('_', ' '),
+                {kind === 'rule' && (
+                    <>
+                        {select('mode', 'Proposed rule treatment', [
+                            ['information_only', 'Information only'],
+                            [
+                                'conditional_proposal',
+                                'Conditional policy proposal — disabled',
+                            ],
+                        ])}
+                        {select(
+                            'measure',
+                            'Rule measure',
+                            (measures[subject] ?? []).map((value) => [
+                                value,
+                                value.replaceAll('_', ' '),
+                            ]),
+                        )}
+                        {select('operator', 'Proposed comparison operator', [
+                            ['gt', '>'],
+                            ['gte', '≥'],
+                            ['lt', '<'],
+                            ['lte', '≤'],
+                            ['abs_gt', 'Absolute magnitude >'],
+                        ])}
+                        {select('priority', 'Proposed priority — no default', [
+                            ['low', 'Low proposal'],
+                            ['medium', 'Medium proposal'],
+                            ['high', 'High proposal'],
+                        ])}
+                    </>
+                )}
+                {kind === 'review' &&
+                    select(
+                        'catalogue_configuration_id',
+                        'Independently reviewed catalogue version',
+                        catalogues.map((item) => [
+                            String(item.id),
+                            `Configuration #${item.id}, version ${item.version}`,
                         ]),
                     )}
-                    {select('operator', 'Proposed comparison operator', [
-                        ['gt', '>'],
-                        ['gte', '≥'],
-                        ['lt', '<'],
-                        ['lte', '≤'],
-                        ['abs_gt', 'Absolute magnitude >'],
-                    ])}
-                    {select('priority', 'Proposed priority — no default', [
-                        ['low', 'Low proposal'],
-                        ['medium', 'Medium proposal'],
-                        ['high', 'High proposal'],
-                    ])}
-                </>
-            )}
-            {kind === 'review' &&
-                select(
-                    'catalogue_configuration_id',
-                    'Independently reviewed catalogue version',
-                    catalogues.map((item) => [
-                        String(item.id),
-                        `Configuration #${item.id}, version ${item.version}`,
-                    ]),
-                )}
-            {fields[kind].map(([key, label]) => (
-                <div key={key}>
-                    <Label htmlFor={`draft-${key}`}>{label}</Label>
-                    {[
-                        'rate_php_per_kwh',
-                        'threshold',
-                        'source_document_hash',
-                    ].includes(key) ? (
-                        <Input
-                            id={`draft-${key}`}
-                            value={form.data.payload[key]}
-                            onChange={(event) => set(key, event.target.value)}
-                            inputMode={
-                                key === 'source_document_hash'
-                                    ? 'text'
-                                    : 'decimal'
-                            }
-                        />
-                    ) : (
-                        <textarea
-                            id={`draft-${key}`}
-                            className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
-                            value={form.data.payload[key]}
-                            onChange={(event) => set(key, event.target.value)}
-                            maxLength={
-                                key === 'operational_evidence' ? 6000 : 4000
-                            }
-                        />
-                    )}
-                </div>
-            ))}
+                {fields[kind].map(([key, label]) => (
+                    <div key={key}>
+                        <Label htmlFor={`draft-${key}`}>{label}</Label>
+                        {[
+                            'rate_php_per_kwh',
+                            'threshold',
+                            'source_document_hash',
+                        ].includes(key) ? (
+                            <Input
+                                id={`draft-${key}`}
+                                value={form.data.payload[key]}
+                                onChange={(event) =>
+                                    set(key, event.target.value)
+                                }
+                                inputMode={
+                                    key === 'source_document_hash'
+                                        ? 'text'
+                                        : 'decimal'
+                                }
+                                aria-describedby={
+                                    fieldHints[key]
+                                        ? `draft-${key}-hint`
+                                        : undefined
+                                }
+                            />
+                        ) : (
+                            <textarea
+                                id={`draft-${key}`}
+                                className="min-h-24 w-full rounded-md border bg-background p-3 text-sm"
+                                value={form.data.payload[key]}
+                                onChange={(event) =>
+                                    set(key, event.target.value)
+                                }
+                                maxLength={
+                                    key === 'operational_evidence' ? 6000 : 4000
+                                }
+                                aria-describedby={
+                                    fieldHints[key]
+                                        ? `draft-${key}-hint`
+                                        : undefined
+                                }
+                            />
+                        )}
+                        {fieldHints[key] && (
+                            <p
+                                id={`draft-${key}-hint`}
+                                className="mt-1 text-[11px] text-muted-foreground"
+                            >
+                                {fieldHints[key]}
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </fieldset>
             {Object.entries(form.errors).map(([key, error]) => (
                 <p
                     key={key}
@@ -455,6 +559,7 @@ function Draft({ props }: { props: Props }) {
                 Save new immutable draft
             </Button>
             <p className="text-muted-foreground">
+                Only the author may submit this draft for independent review.
                 All policy values start blank. Saving or approving review never
                 activates tariffs, classifications, priorities, alerts or
                 recommendations. R5 reviews do not create Action Tracker items.
@@ -506,7 +611,7 @@ export default function DssConfiguration() {
                 <EnergyFilters
                     buildings={buildings}
                     selected={selectedBuildingCode}
-                    latest={null}
+                    latest={props.latestVerifiedPeriod}
                     onChange={(building) => navigate({ building })}
                 />
                 <div className="grid gap-4 sm:grid-cols-2">
